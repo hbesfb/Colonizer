@@ -17,7 +17,7 @@ apt update
 apt install upgrade -y
 
 # install via apt
-apt install -y --no-install-recommends python3-virtualenv
+apt install -y --no-install-recommends python3-virtualenv libgl1
 apt install -y --no-install-recommends unixodbc unixodbc-dev odbcinst git
 apt install -y --no-install-recommends libcamera-dev libcap-dev
 apt install -y --no-install-recommends nginx supervisor redis watchdog
@@ -27,7 +27,7 @@ cd /app
 git clone https://github.com/elenhinan/Colonizer.git $INSTALL_DIR
 
 # install python packages
-apt install -y python3-libcamera python3-picamera2
+apt install -y --no-install-recommends python3-libcamera python3-kms++
 cd $INSTALL_DIR
 python3 -m venv venv
 source venv/bin/activate
@@ -110,13 +110,6 @@ pico /etc/fstab
 add "#//yourfileserver/sharename  /mnt/data      cifs    uid=colonizer,iocharset=utf8,file_mode=0700,dir_mode=0700,noserverino,credentials=/home/pi/.smbcredentials    0    0"
 add "username=<username>\npassword=<password>" to ~/.smbcredentials
 
-# set permissions
-chown colonizer:www-data /mnt/data
-chmod 770 /mnt/data
-chown colonizer:www-data -R $INSTALL_DIR
-find $INSTALL_DIR -type f -exec chmod 640 {} \;
-find $INSTALL_DIR -type d -exec chmod 750 {} \;
-
 # setup watchdog
 apt install watchdog
 cd $INSTALL_DIR
@@ -126,4 +119,11 @@ chmod +x repair.sh
 systemctl enable watchdog
 
 # create folder
-mkdir -p $INSTALL_DIR/{log,run}
+mkdir -p $INSTALL_DIR/run
+
+# set permissions
+chown colonizer:www-data /mnt/data
+chmod 770 /mnt/data
+chown colonizer:www-data -R $INSTALL_DIR
+find $INSTALL_DIR -type f -exec chmod 640 {} \;
+find $INSTALL_DIR -type d -exec chmod 750 {} \;

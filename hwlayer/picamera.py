@@ -2,7 +2,7 @@ import logging
 import time
 from io import BytesIO
 from picamera2 import Picamera2
-#from libcamera import Transform
+from libcamera import Transform
 from hwlayer.base import BaseCamera
 
 class PiHQCamera2(BaseCamera):
@@ -88,7 +88,7 @@ class PiHQCamera2(BaseCamera):
 	
 	def set_flip(self, horizontal=False, vertical=False):
 		self._logger.debug(f"Setting flip to {horizontal} {vertical}")
-		#self._config['transform'] = Transform(hflip=horizontal, vflip=vertical)
+		self._config['transform'] = Transform(hflip=horizontal, vflip=vertical)
 		self._config_changed = True
 	
 	def set_rotation(self, dir:str):

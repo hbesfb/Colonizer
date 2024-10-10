@@ -93,7 +93,7 @@ def save_image():
 
 @blueprint.route('/capture', methods=['get'])
 def capture():
-	modes = settings['camera'].keys()
+	modes = list(settings['camera'].keys())
 	modes.remove('default')
 	selected = None
 	for m in modes:
