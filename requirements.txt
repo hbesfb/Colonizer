@@ -10,10 +10,7 @@ SQLAlchemy~=2.0.31
 pyodbc~=5.1.0
 WTForms~=3.1.2
 pyzmq~=26.0.3
-adafruit_circuitpython_neopixel~=6.2.3
+adafruit-circuitpython-neopixel-spi~=1.0.10
 redis~=5.1.0
 watchdog~=5.0.3
-
-#pyueye==4.95.0
-#Bootstrap_Flask==2.3.3
-#Flask_FontAwesome==0.1.5
+picamera2~=0.3.21

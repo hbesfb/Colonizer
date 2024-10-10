@@ -1,8 +1,6 @@
 #user colonizer colonizer;
-#pid /var/run/colonizer/nginx.pid;
 
 upstream gunicorn_server_testing {
-   # for UNIX domain socket setups
    server unix:/app/Colonizer-testing/run/colonizer.sock fail_timeout=0;
 }
 

@@ -17,33 +17,44 @@ apt update
 apt install upgrade -y
 
 # install via apt
-apt install -y python3-pip python3-opencv
-apt install -y unixodbc unixodbc-dev git
-apt install -y nginx supervisor
+apt install -y --no-install-recommends python3-virtualenv
+apt install -y --no-install-recommends unixodbc unixodbc-dev odbcinst git
+apt install -y --no-install-recommends libcamera-dev libcap-dev
+apt install -y --no-install-recommends nginx supervisor redis watchdog
 
 # clone source code from git
 cd /app
-git clone git@github.com:elenhinan/Colonizer.git $INSTALL_DIR
+git clone https://github.com/elenhinan/Colonizer.git $INSTALL_DIR
 
 # install python packages
+apt install -y python3-libcamera python3-picamera2
+cd $INSTALL_DIR
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
 pip install -r requirements.txt
 
 # setup nginx and supervisor
 cp -rv install/etc/* /etc/
 ln -s /etc/nginx/sites-available/colonizer /etc/nginx/sites-enabled/colonizer
 rm /etc/nginx/sites-enabled/default
+systemctl stop nginx
 systemctl disable nginx
+
+# enable SPI
+#raspi-config
 
 # download and compile freetds (more recent version)
 cd /tmp
-wget -nv ftp://ftp.freetds.org/pub/freetds/stable/freetds-patched.tar.gz \
-&& tar -zxvf freetds-patched.tar.gz \
-&& cd freetds* \
-&& ./configure --prefix=/usr --sysconfdir=/etc --with-unixodbc=/usr --with-tdsver=7.4 \
-&& make \
-&& sudo make install \
-&& cd samples \
-&& sudo odbcinst -i -d -f unixodbc.freetds.driver.template
+wget -nv http://ftp.freetds.org/pub/freetds/stable/freetds-patched.tar.gz
+tar -zxvf freetds-patched.tar.gz
+rm freetds-patched.tar.gz
+cd freetds-*
+./configure --prefix=/usr --sysconfdir=/etc --with-unixodbc=/usr --with-tdsver=7.4
+make
+sudo make install
+cd samples
+sudo odbcinst -i -d -f unixodbc.freetds.driver.template
 
 # install bootstrap 4.6
 BOOTSTRAP_DIR=$INSTALL_DIR/webdaemon/static/bootstrap
@@ -113,3 +124,6 @@ cp install/etc/watchdog.conf /etc/watchdog.conf
 chown root:root /etc/watchdog.conf
 chmod +x repair.sh
 systemctl enable watchdog
+
+# create folder
+mkdir -p $INSTALL_DIR/{log,run}

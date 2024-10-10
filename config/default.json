@@ -15,7 +15,7 @@
       ],
       "batch": [
          "^(?P<batch>[A-Za-z]{3,5}\\d{7})$",
-	      "^(?P<batch>[A-Za-z]{3,5}\\d{8}-\\d)$",
+         "^(?P<batch>[A-Za-z]{3,5}\\d{8}-\\d)$",
          "^(?P<batch>MK.*\\d{7})$"
       ],
       "location": [
@@ -23,69 +23,62 @@
       ],
       "settleplate": [
          "^(?P<serial>\\d{18}(?P<year>\\d{2})(?P<month>\\d{2})(?P<day>\\d{2})\\d{2}(?P<lot>\\d{10})\\d{8})$",
-	      "^(?P<serial>\\d+(?P<lot>\\d{11})(?P<year>\\d{2})(?P<month>\\d{2})(?P<day>\\d{2}))$",
-	      "^(?P<serial>\\d+\\s?(?P<lot>\\d{10})(?P<year>\\d{4})(?P<month>\\d{2})(?P<day>\\d{2})\\w{9})$"
+         "^(?P<serial>\\d+(?P<lot>\\d{11})(?P<year>\\d{2})(?P<month>\\d{2})(?P<day>\\d{2}))$",
+         "^(?P<serial>\\d+\\s?(?P<lot>\\d{10})(?P<year>\\d{4})(?P<month>\\d{2})(?P<day>\\d{2})\\w{9})$"
       ]
    },
    "general": {
       "adminpwd": "admin",
       "user_min": 4,
       "user_max": 8,
-      "timeout": 1800,
+      "timeout": 3600,
       "grace_period": 3600,
       "mountpoint": "/mnt/data",
+      "savepath": "/mnt/data/Data/Colonizer/",
       "autocount": true,
-      "sameuser": true
+      "sameuser": true,
+      "testserver": true
    },
    "users": {
       "admin": "admin"
    },
    "camera": {
       "default": {
-         "crop": [676, 30, 3008, 3008],
-         "image": true,
-         "hflip": false,
-         "vflip": true,
-         "rotation": "cw",
+         "cam_crop": [676, 30, 3008, 3008],
+         "cam_hflip": false,
+         "cam_vflip": true,
+         "cam_rotation": "cw",
+         "cam_exposure": 50000,
+         "cam_wb": [1.8,1.8],
          "led_top": [0,0,0],
          "led_ring": [0,0,0],
-         "status": [0,0,0],
-         "wait": 0.7,
-         "exposure": 50000,
-         "wb": [2.3,2,3],
-         "autocrop" : "none",
-         "mask" : false,
-         "drawmask" : false
+         "led_status": [0,0,0],
+         "led_wait": 0.7,
+         "crop_auto" : "none",
+         "crop_mask" : false,
+         "crop_mask_cx": 0.506,
+         "crop_mask_cy": 0.498,
+         "crop_mask_cr": 0.434,
+         "crop_drawonly" : false,
+         "crop_canny_t1": 32,
+         "crop_canny_t2": 64,
+         "histogram" : false,
+         "autolevel": false
       },
       "settleplate": {
+         "cam_exposure": 200000,
          "led_ring": [255,78,36],
-         "exposure": 200000,
-         "wb": [1.8,1.8],
-         "mask": true
+         "crop_mask": true,
+         "crop_mask_cr": 0.434
       },
       "plate": {
-         "default": true,
+         "cam_exposure": 50000,
          "led_top": [255,76,25],
-         "exposure": 33000,
-         "wb": [1.8,1.8]
-      },
-      "debug": {
-         "led_ring": [255,78,36],
-         "exposure": 200000,
-         "wb": [1.8,1.8],
-         "drawmask": true
-      }
-   },
-   "autocrop": {
-      "settleplate": {
-         "c_x": 0.506,
-         "c_y": 0.498,
-         "c_r": 0.434
-      },
-      "plate": {
-         "autolevel": false,
-         "canny_t1": 16,
-         "canny_t2": 48
+         "crop_auto": "rect",
+         "crop_mask_cr": 0.54,
+         "crop_canny_t1": 32,
+         "crop_canny_t2": 64,
+         "default": true
       }
    }
 }
