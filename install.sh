@@ -29,7 +29,7 @@ git clone https://github.com/elenhinan/Colonizer.git $INSTALL_DIR
 # install python packages
 apt install -y --no-install-recommends python3-libcamera python3-kms++
 cd $INSTALL_DIR
-python3 -m venv venv
+python3 -m venv --system-site-packages venv
 source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
@@ -37,6 +37,7 @@ pip install -r requirements.txt
 # setup nginx and supervisor
 cp -rv install/etc/* /etc/
 ln -s /etc/nginx/sites-available/colonizer /etc/nginx/sites-enabled/colonizer
+ln -s /etc/nginx/sites-available/colonizer-test /etc/nginx/sites-enabled/colonizer-test
 rm /etc/nginx/sites-enabled/default
 systemctl stop nginx
 systemctl disable nginx
@@ -105,9 +106,9 @@ mkdir -p /mnt/data
 
 # setup auto-remount in crontab
 crontab -e
-add "*/5 * * * * grep -q "/mnt/petra" /proc/mounts || sudo mount /mnt/petra"
+add "*/1 * * * * grep -q "/mnt/data" /proc/mounts || mount /mnt/data"
 pico /etc/fstab
-add "#//yourfileserver/sharename  /mnt/data      cifs    uid=colonizer,iocharset=utf8,file_mode=0700,dir_mode=0700,noserverino,credentials=/home/pi/.smbcredentials    0    0"
+add "//yourfileserver/sharename  /mnt/data      cifs    uid=colonizer,iocharset=utf8,file_mode=0700,dir_mode=0700,noserverino,credentials=/home/colonizer/.smbcredentials    0    0"
 add "username=<username>\npassword=<password>" to ~/.smbcredentials
 
 # setup watchdog
@@ -118,12 +119,15 @@ chown root:root /etc/watchdog.conf
 chmod +x repair.sh
 systemctl enable watchdog
 
-# create folder
-mkdir -p $INSTALL_DIR/run
-
 # set permissions
 chown colonizer:www-data /mnt/data
 chmod 770 /mnt/data
 chown colonizer:www-data -R $INSTALL_DIR
-find $INSTALL_DIR -type f -exec chmod 640 {} \;
-find $INSTALL_DIR -type d -exec chmod 750 {} \;
+find $INSTALL_DIR/webdaemon/static -type f -exec chmod 640 {} \;
+find $INSTALL_DIR/webdaemon/static -type d -exec chmod 750 {} \;
+
+# # setup timeserver
+#vi /etc/systemd/timesyncd.conf
+#> NTP=<hostname>
+#systemctl restart systemd-timesyncd
+#timedatectl show-timesync --all

@@ -16,7 +16,7 @@ app.logger.setLevel(logging.INFO)
 # load settings
 config_file = os.environ.get('SETTLEPLATE_CONFIG','default')
 if not settings.init(config_file, app):
-   exit(1)
+	exit(1)
 
 # config
 app.config['SECRET_KEY'] = get_secret(),
