@@ -9,18 +9,18 @@ from webdaemon.database import db
 class Settleplate(db.Model):
 	__tablename__ = 'SETTLEPLATE'
 	ID = db.Column(db.Integer, primary_key=True)
-	Username = db.Column(db.TEXT(32))
+	Username = db.Column(db.VARCHAR(32))
 	ScanDate = db.Column(db.DateTime)
-	Barcode = db.Column(db.TEXT(128))
-	Lot_no = db.Column(db.TEXT(128))
+	Barcode = db.Column(db.VARCHAR(256))
+	Lot_no = db.Column(db.VARCHAR(128))
 	Expires = db.Column(db.Date)
 	Counts = db.Column(db.Integer)
-	Version = db.Column(db.TEXT(32))
-	Location = db.Column(db.TEXT(32))
-	Batch = db.Column(db.TEXT(128))
+	Version = db.Column(db.VARCHAR(32))
+	Location = db.Column(db.VARCHAR(128))
+	Batch = db.Column(db.VARCHAR(128))
 	# deferred so only loaded when accessed, not when queried
 	Image = deferred(db.Column(db.LargeBinary))
-	Colonies = db.Column(db.LargeBinary)
+	Colonies = db.Column(db.VARCHAR('max'))
 	Exported = db.Column(db.BINARY(1))
 
 	def __init__(self, **kwargs):
@@ -41,10 +41,10 @@ class SettleplateForm(FlaskForm):
 	Counts = IntegerField('Counts')
 	Location = StringField('Location', [validators.DataRequired("Location needed")])
 	Batch = StringField('Batch', [validators.DataRequired("Batch# needed")])
-	Colonies = HiddenField('Colonies', filters=[lambda x: x.decode('utf8') if type(x) is bytes else x])
+	Colonies = HiddenField('Colonies') #, filters=[lambda x: x.decode('utf8') if type(x) is bytes else x])
 	Version = StringField('Version', render_kw={'readonly': True})
 
-	def validate_Colonies(form, field):
-		if type(field.data) is str:
-			field.data = field.data.encode('utf8')
-		return type(field.data) is bytes
+	#def validate_Colonies(form, field):
+	#	if type(field.data) is str:
+	#		field.data = field.data.encode('utf8')
+	#	return type(field.data) is bytes

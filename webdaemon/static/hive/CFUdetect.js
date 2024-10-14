@@ -5,6 +5,9 @@ async function cfu_load_model() {
    let primer = tf.zeros([1,640,640,3], dtype='int32');
    await model.executeAsync(primer);
    console.log('CFU-detect - initialized');
+   // bind and enable button when loaded
+   $('#detect').on('click', cfu_detect)
+   $('#detect').prop('disabled', false);
 };
 
 async function cfu_detect() {
@@ -62,9 +65,7 @@ function cfu_compare(a,b) {
    return 0;
 }
 
-// load ML-model, and enable button to trigger it
+// load ML-model
 $(document).ready(function() {
-   cfu_load_model().then(function() {
-      $('#detect').click(cfu_detect).prop('disabled', false);
-   })
+   cfu_load_model();
 });
