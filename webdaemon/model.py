@@ -9,19 +9,18 @@ from webdaemon.database import db
 class Settleplate(db.Model):
 	__tablename__ = 'SETTLEPLATE'
 	ID = db.Column(db.Integer, primary_key=True)
-	Username = db.Column(db.VARCHAR(32))
+	Username = db.Column(db.NVARCHAR(32))
 	ScanDate = db.Column(db.DateTime)
-	Barcode = db.Column(db.VARCHAR(256))
-	Lot_no = db.Column(db.VARCHAR(128))
+	Barcode = db.Column(db.VARCHAR(128))
+	Lot_no = db.Column(db.VARCHAR(64))
 	Expires = db.Column(db.Date)
 	Counts = db.Column(db.Integer)
 	Version = db.Column(db.VARCHAR(32))
-	Location = db.Column(db.VARCHAR(128))
-	Batch = db.Column(db.VARCHAR(128))
-	# deferred so only loaded when accessed, not when queried
-	Image = deferred(db.Column(db.LargeBinary))
+	Location = db.Column(db.NVARCHAR(128))
+	Batch = db.Column(db.NVARCHAR(128))
+	Image = deferred(db.Column(db.LargeBinary)) # deferred so only loaded when accessed, not when queried
 	Colonies = db.Column(db.VARCHAR('max'))
-	Exported = db.Column(db.BINARY(1))
+	Exported = db.Column(db.BINARY(1), default=False)
 
 	def __init__(self, **kwargs):
 			super(Settleplate, self,).__init__(**kwargs)

@@ -15,7 +15,7 @@ def live():
 	mode = request.args.get('mode')
 
 	capture_settings = {}
-	capture_settings.update(settings['camera']['default'])
+	capture_settings.update(settings['camera']['_default'])
 
 	if mode in settings['camera'].keys():
 		capture_settings.update(settings['camera'][mode])
@@ -94,7 +94,11 @@ def save_image():
 @blueprint.route('/capture', methods=['get'])
 def capture():
 	modes = list(settings['camera'].keys())
-	modes.remove('default')
+	# remove debug settings if not admin
+	if not g.isAdmin:
+		modes = [m for m in modes if not m.startswith('_')]
+
+	# use this as default setting
 	selected = None
 	for m in modes:
 		if 'default' in settings['camera'][m]:
