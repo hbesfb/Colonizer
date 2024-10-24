@@ -18,12 +18,11 @@ apt install upgrade -y
 
 # install via apt
 apt install -y --no-install-recommends python3-virtualenv libgl1
-apt install -y --no-install-recommends unixodbc unixodbc-dev odbcinst git
+apt install -y --no-install-recommends unixodbc unixodbc-dev odbcinst git wget
 apt install -y --no-install-recommends libcamera-dev libcap-dev
 apt install -y --no-install-recommends nginx supervisor redis watchdog
 
 # clone source code from git
-cd /app
 git clone https://github.com/elenhinan/Colonizer.git $INSTALL_DIR
 
 # install python packages
@@ -35,9 +34,7 @@ pip install --upgrade pip
 pip install -r requirements.txt
 
 # setup nginx and supervisor
-cp -rv install/etc/* /etc/
-ln -s /etc/nginx/sites-available/colonizer /etc/nginx/sites-enabled/colonizer
-ln -s /etc/nginx/sites-available/colonizer-test /etc/nginx/sites-enabled/colonizer-test
+cp -rv $INSTALL_DIR/install/etc/* /etc/
 rm /etc/nginx/sites-enabled/default
 systemctl stop nginx
 systemctl disable nginx
@@ -107,16 +104,14 @@ mkdir -p /mnt/data
 # setup auto-remount in crontab
 crontab -e
 add "*/1 * * * * grep -q "/mnt/data" /proc/mounts || mount /mnt/data"
-pico /etc/fstab
-add "//yourfileserver/sharename  /mnt/data      cifs    uid=colonizer,iocharset=utf8,file_mode=0700,dir_mode=0700,noserverino,credentials=/home/colonizer/.smbcredentials    0    0"
-add "username=<username>\npassword=<password>" to ~/.smbcredentials
+echo "#//yourfileserver/sharename  /mnt/data      cifs    uid=colonizer,iocharset=utf8,file_mode=0700,dir_mode=0700,noserverino,credentials=/home/colonizer/.smbcredentials    0    0" >> /etc/fstab
+echo "domain=\nusername=<username>\npassword=<password>" >> ~/.smbcredentials
 
 # setup watchdog
 apt install watchdog
 cd $INSTALL_DIR
-cp install/etc/watchdog.conf /etc/watchdog.conf
-chown root:root /etc/watchdog.conf
-chmod +x repair.sh
+chown root:root /etc/watchdog.conf repair.sh
+chmod +554 repair.sh
 systemctl enable watchdog
 
 # set permissions
