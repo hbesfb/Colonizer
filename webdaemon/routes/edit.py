@@ -39,6 +39,6 @@ def edit_settleplate(settleplate_id):
 		current_app.logger.info(f"Deleting settleplate : {sp.ID}")
 		db.session.delete(sp)
 		db.session.commit()
-		return redirect(url_for('list_settleplates'))
+		return redirect(url_for('list.settleplates'))
 
 	return render_template('settleplate.html', settleplate=sp, form=form, readonly=readonly, updated=updated)

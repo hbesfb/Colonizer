@@ -68,8 +68,8 @@
       "settleplate": {
          "cam_exposure": 200000,
          "led_ring": [255,78,36],
-         "crop_mask": true,
-         "crop_mask_cr": 0.434
+         "crop_auto": "ring",
+         "crop_mask_cr": 0.42
       },
       "plate": {
          "cam_exposure": 50000,

@@ -138,7 +138,7 @@ def autocrop_rect(img_org, settings):
 
 def autocrop_ring(img_org, settings):
 	# reduce image size for speed
-	factor = 8
+	factor = 4
 
 	# use gray only
 	img_gray = cv2.cvtColor(img_org, cv2.COLOR_RGB2GRAY)
@@ -147,7 +147,7 @@ def autocrop_ring(img_org, settings):
 
 	# resize and blur
 	img_prep = prep_img(img_gray, factor)
-	mask = gen_mask(img_prep)
+	mask = gen_mask(img_prep, settings)
 
 	# detect edges, threshold and mask
 	img_thrs = cv2.adaptiveThreshold(img_prep, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 10)
@@ -156,9 +156,9 @@ def autocrop_ring(img_org, settings):
 	
 	# get circle parameters and scale to full size
 	(mask_x, mask_y), mask_r = cv2.minEnclosingCircle(edges)
-	mask_x = int(mask_x * factor+0.5)
-	mask_y = int(mask_y * factor+0.5)
-	mask_r = int(mask_r * factor+0.5)
+	mask_x = int(round(mask_x * factor,0))
+	mask_y = int(round(mask_y * factor,0))
+	mask_r = int(round(mask_r * factor,0))
 
 	x1 = max(mask_x-mask_r, 0)
 	x2 = min(mask_x+mask_r, img_org.shape[0])
@@ -173,12 +173,20 @@ def autocrop_ring(img_org, settings):
 	#rel_x = abs((mask_x / min_axis) - 0.5)*2
 	#rel_y = abs((mask_y / min_axis) - 0.5)*2
 
+	if settings['crop_drawonly']:
+		thrs_rgb = cv2.cvtColor(img_thrs_masked,cv2.COLOR_GRAY2RGB)
+		img = cv2.resize(thrs_rgb, (img_org.shape[0],img_org.shape[1]), interpolation = cv2.INTER_NEAREST)
+		draw_mask(img, settings)
+		cv2.circle(img, (mask_x, mask_y), mask_r, (255,0,255), 5)
+		img = cv2.addWeighted(img_org, 0.5, img, 1.0, 1.0)
+		return img
+
 	if rel_r < min_radius:
 		return img_org
 	
-	# set pizels outside circle to color
+	# set pixels outside circle to color
 	mask = np.zeros_like(img_org)
-	cv2.circle(mask, (mask_y, mask_x), mask_r, [0,0,0], -1)
+	cv2.circle(mask, (mask_y, mask_x), mask_r, [255,255,255], -1)
 	img_out = cv2.bitwise_and(img_org, mask)
 	img_out = img_out[x1:x2, y1:y2]
 
