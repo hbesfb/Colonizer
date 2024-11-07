@@ -158,6 +158,7 @@ def autocrop_ring(img_org, settings):
 	(mask_x, mask_y), mask_r = cv2.minEnclosingCircle(edges)
 	mask_x = int(round(mask_x * factor,0))
 	mask_y = int(round(mask_y * factor,0))
+	mask_r -= np.sqrt(2) # shrink size of pixel diagonal
 	mask_r = int(round(mask_r * factor,0))
 
 	x1 = max(mask_x-mask_r, 0)
@@ -165,14 +166,12 @@ def autocrop_ring(img_org, settings):
 	y1 = max(mask_y-mask_r, 0)
 	y2 = min(mask_y+mask_r, img_org.shape[1])
 
-	# if too small radius (<30%) or too much off center, fail
+	# if too small radius (<30%) fail
 	min_radius = 0.2
-	#max_outside = 0.3
 	min_axis = min(img_org.shape[0:1])
 	rel_r = mask_r / min_axis # size of r relative to shortest axis
-	#rel_x = abs((mask_x / min_axis) - 0.5)*2
-	#rel_y = abs((mask_y / min_axis) - 0.5)*2
 
+	# draw debug image
 	if settings['crop_drawonly']:
 		thrs_rgb = cv2.cvtColor(img_thrs_masked,cv2.COLOR_GRAY2RGB)
 		img = cv2.resize(thrs_rgb, (img_org.shape[0],img_org.shape[1]), interpolation = cv2.INTER_NEAREST)
