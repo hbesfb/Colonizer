@@ -54,7 +54,7 @@ async function cfu_detect() {
 
 function cfu_compare(a,b) {
    a_size = (a.bbox[2] - a.bbox[0]) * (a.bbox[1] - a.bbox[3])
-   b_size = (a.bbox[2] - a.bbox[0]) * (a.bbox[1] - a.bbox[3])
+   b_size = (b.bbox[2] - b.bbox[0]) * (b.bbox[1] - b.bbox[3])
    
    if (a_size < b_size) {
       return -1;
