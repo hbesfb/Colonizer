@@ -1,5 +1,11 @@
+var model;
+var index_n;
+var index_cert;
+var index_bbox;
+var index_label;
+
 async function cfu_load_model() {
-   let model_url = "/static/hive/model/model.json"
+   let model_url = "/static/hive/model_2.0/model.json"
    model = await tf.loadGraphModel(model_url);
    // run first with zeros so everything is ready, reducing lag the first time
    let primer = tf.zeros([1,640,640,3], dtype='int32');
@@ -8,10 +14,10 @@ async function cfu_load_model() {
    // bind and enable button when loaded
    $('#detect').on('click', cfu_detect)
    $('#detect').prop('disabled', false);
-   var index_n = model.outputNodes.indexOf("num_detections");
-   var index_cert = model.outputNodes.indexOf("Identity_4:0");
-   var index_bbox = model.outputNodes.indexOf("detection_boxes");
-   var index_label = model.outputNodes.indexOf("Identity_2:0");
+   index_n = model.outputNodes.indexOf("num_detections");
+   index_cert = model.outputNodes.indexOf("Identity_4:0");
+   index_bbox = model.outputNodes.indexOf("detection_boxes");
+   index_label = model.outputNodes.indexOf("Identity_2:0");
 };
 
 async function cfu_detect() {

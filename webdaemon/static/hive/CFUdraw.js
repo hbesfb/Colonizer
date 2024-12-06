@@ -2,8 +2,8 @@ var cfu_arr;
 var results;
 var model;
 var show_low = true;
-var threshold_low = 0.20;
-var threshold_high = 0.35
+var threshold_low = 0.15;
+var threshold_high = 0.20;
 const labels = ['Unused', 'CFU', 'MultiCFU', 'Bubble', 'Dish']
 console.log("CFU-draw - initialized")
 
