@@ -8,6 +8,10 @@ async function cfu_load_model() {
    // bind and enable button when loaded
    $('#detect').on('click', cfu_detect)
    $('#detect').prop('disabled', false);
+   var index_n = model.outputNodes.indexOf("num_detections");
+   var index_cert = model.outputNodes.indexOf("Identity_4:0");
+   var index_bbox = model.outputNodes.indexOf("detection_boxes");
+   var index_label = model.outputNodes.indexOf("Identity_2:0");
 };
 
 async function cfu_detect() {
@@ -19,7 +23,7 @@ async function cfu_detect() {
    let input_tensor = tf.cast(img_resized, dtype='int32').expandDims() ;
    let output_tensor = await model.executeAsync(input_tensor);
 
-   let n = output_tensor[2].arraySync()[0]
+   let n = output_tensor[index_n].arraySync()[0]
    
    // clear overlay
    cfu_clear();
@@ -27,9 +31,9 @@ async function cfu_detect() {
    cfu_arr = [];
    for (let i=0;i<n;i++) {
       let cfu = {
-         cert : +output_tensor[3].arraySync()[0][i].toFixed(2), // + to convert from string to number again
-         bbox : output_tensor[4].arraySync()[0][i].map(item => +item.toFixed(4)),
-         label : labels[Number(output_tensor[5].arraySync()[0][i])],
+         cert : +output_tensor[index_cert].arraySync()[0][i].toFixed(2), // + to convert from string to number again
+         bbox : output_tensor[index_bbox].arraySync()[0][i].map(item => +item.toFixed(4)),
+         label : labels[Number(output_tensor[index_label].arraySync()[0][i])],
          id: i,
          override : false
       }
