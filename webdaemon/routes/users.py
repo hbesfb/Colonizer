@@ -36,7 +36,7 @@ def login():
 			session['user'] = username
 			session['user_time'] = datetime.now()
 			current_app.logger.info(f"User {session['user']} logged in")
-			next_page = session['login_redirect']
+			next_page = session.get('login_redirect', None)
 			if next_page is None:
 				return redirect(url_for('index'))
 			else:
