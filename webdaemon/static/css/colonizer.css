@@ -44,22 +44,6 @@ tr.table-subheader td{
   text-align: left;
 }
 
-.glyph-fail {
-  
-}
-
-.glyph-active {
-  
-}
-
-.glyph-pass {
-  
-}
-
-.glyph-wait {
-  
-}
-
 .imageview {
   width:100%;
   aspect-ratio: 1;
@@ -155,4 +139,11 @@ tr.table-subheader td{
 
 #starfield rect {
   fill:lightslategrey;
+}
+
+.errormsg {
+  margin-top: 12px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: smaller;
+  text-align: center;
 }

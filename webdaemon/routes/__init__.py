@@ -1,6 +1,6 @@
 from webdaemon import app
-
 from flask import render_template, redirect, url_for, g
+from sqlalchemy.exc import SQLAlchemyError
 from settings import settings
 
 from . import admin
@@ -22,6 +22,11 @@ app.register_blueprint(scan.blueprint)
 app.register_blueprint(tools.blueprint)
 app.register_blueprint(users.blueprint)
 app.register_blueprint(hiscore.blueprint)
+
+# error handler for SQL errors:
+@app.errorhandler(SQLAlchemyError)
+def sqlerror(e):
+	return render_template('sqlerror.html', error=e)
 
 # default page
 @app.route('/')

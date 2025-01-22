@@ -11,6 +11,7 @@ class _BarcodeParser():
 		self.regex_patterns = []
 		self.update_regexp()
 		self.string_pattern = re.compile(r"[^\w:\-_]")
+		settings.addListener(self.update_regexp)
 
 	def update_regexp(self):
 		self.regex_patterns.clear()

@@ -1,7 +1,6 @@
 import os
 import secrets
 import json
-#import atexit
 from threading import Timer
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
@@ -9,6 +8,7 @@ from watchdog.events import FileSystemEvent, FileSystemEventHandler
 class Settings(FileSystemEventHandler):
 	def __init__(self):
 		self._data = {}
+		self._listeners = []
 		self._changed = False
 		self._logger = None
 		# observer for config file changes
@@ -50,6 +50,8 @@ class Settings(FileSystemEventHandler):
 				self._data = json.load(f)
 			if self._logger:
 				self._logger.info(f"Settings loaded from {filepath}")
+			# call listeners
+			for func in self._listeners: func()
 			return True
 		except:
 			if self._logger:
@@ -72,6 +74,14 @@ class Settings(FileSystemEventHandler):
 		self._reloader = Timer(self._reload_delay, self.load)
 		self._reloader.daemon = True
 		self._reloader.start()
+
+	# Add and remove functions from the list of listeners.
+	def addListener(self,func):
+		if func in self._listeners: return
+		self._listeners.append(func)
+	def removeListener(self,func):
+		if func not in self._listeners: return
+		self._listeners.remove(func)
 
 settings = Settings()
 

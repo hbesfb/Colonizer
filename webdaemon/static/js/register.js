@@ -152,10 +152,6 @@ function set_glyph(glyph, state) {
    glyph.toggleClass('fa-question-circle', state == GLYPH.WAIT);
    glyph.toggleClass('fa-check-circle', state == GLYPH.PASS);
    glyph.toggleClass('fa-exclamation-circle', state == GLYPH.FAIL);
-   glyph.toggleClass('glyph-wait', state == GLYPH.WAIT);
-   glyph.toggleClass('glyph-active', state == GLYPH.ACTIVE);
-   glyph.toggleClass('glyph-pass', state == GLYPH.PASS);
-   glyph.toggleClass('glyph-fail', state == GLYPH.PASS);
 }
 
 function update_table() {
