@@ -3,6 +3,8 @@ var index_n;
 var index_cert;
 var index_bbox;
 var index_label;
+var threshold_low = 0.05;
+var threshold_high = 0.10;
 
 async function cfu_load_model() {
    let model_url = "/static/hive/model_2.0/model.json"
@@ -37,12 +39,14 @@ async function cfu_detect() {
    cfu_arr = [];
    for (let i=0;i<n;i++) {
       let cfu = {
-         cert : +output_tensor[index_cert].arraySync()[0][i].toFixed(2), // + to convert from string to number again
+         cert : +output_tensor[index_cert].arraySync()[0][i].toFixed(3), // + to convert from string to number again
          bbox : output_tensor[index_bbox].arraySync()[0][i].map(item => +item.toFixed(4)),
          label : labels[Number(output_tensor[index_label].arraySync()[0][i])],
          id: i,
          override : false
       }
+      let size = (cfu.bbox[2]-cfu.bbox[0]+cfu.bbox[3]-cfu.bbox[1])/2;
+      cfu.cert *= 0.05/size; // compensate for cert for small sizes
       // skip if below threshold1
       if (cfu.cert < threshold_low) { break; }
       if (cfu.cert < threshold_high && !show_low) { continue; }
