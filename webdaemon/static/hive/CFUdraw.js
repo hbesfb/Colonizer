@@ -2,7 +2,6 @@ var cfu_arr;
 var results;
 var model;
 var show_low = true;
-const labels = ['Unused', 'CFU', 'MultiCFU', 'Bubble', 'Dish']
 console.log("CFU-draw - initialized")
 
 // trigger on image load to set aspect ratio of overlay
