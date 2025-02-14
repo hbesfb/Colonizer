@@ -2,6 +2,7 @@ var cfu_arr;
 var results;
 var model;
 var show_low = true;
+var threshold_high = 0.50;  // min threshold to count CFU automatically
 console.log("CFU-draw - initialized")
 
 // trigger on image load to set aspect ratio of overlay

@@ -23,6 +23,15 @@
 			<li class="nav-item" id="nav_settings">
 				<a class="nav-link" href="/admin/settings">Settings</a>
 			</li>
+			<li class="nav-item dropdown" id="nav_hiscore">
+				<a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">HiScore</a>
+				<div class="dropdown-menu">
+					<a class="dropdown-item" href="/hiscore/all-time">All time</a>
+					<a class="dropdown-item" href="/hiscore/last-year">Last year</a>
+					<a class="dropdown-item" href="/hiscore/last-month">Last month</a>
+					<a class="dropdown-item" href="/hiscore/all-time?location=Hansketrykk">Hansketrykk</a>
+				</div>
+			</li>
 			{% endif %}
 			<li class="nav-item" id="nav_logout">
 				<a class="nav-link" href="/logout">Logout</a>

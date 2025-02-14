@@ -2,7 +2,6 @@ var model;
 var max_cfus = 200;
 var threshold_iou = 0.4;    // max area overlap
 var threshold_low = 0.10;   // min score to include CFU
-var threshold_high = 0.50;  // min threshold to count CFU automatically
 var size_x;
 var size_y;
 

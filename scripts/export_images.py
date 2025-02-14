@@ -11,7 +11,7 @@ from hashlib import md5
 from datetime import datetime
 
 # settings
-fromdate = datetime(2024,10,1)
+fromdate = datetime(2024,12,5)
 version='WebApp 2.0'
 outpath="/mnt/data/Data/Colonizer/eksport"
 
@@ -30,7 +30,7 @@ base.prepare(autoload_with=engine)
 SettlePlate = base.classes.SETTLEPLATE
 
 # start querying
-query = session.query(SettlePlate.ID, SettlePlate.Barcode, SettlePlate.ScanDate, SettlePlate.Counts, SettlePlate.Colonies).filter(SettlePlate.Counts >= '0', SettlePlate.Version.like(version))
+query = session.query(SettlePlate.ID, SettlePlate.Barcode, SettlePlate.ScanDate, SettlePlate.Counts, SettlePlate.Colonies).filter(SettlePlate.Counts >= '1', SettlePlate.Version.like(version))
 results = query.all()
 for i,row in zip(range(len(results)),results):
 	query_t0 = session.query(SettlePlate.ScanDate).filter(db.and_(SettlePlate.Barcode.like(row.Barcode), SettlePlate.Counts == '-1'))
