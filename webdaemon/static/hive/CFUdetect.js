@@ -23,6 +23,21 @@ async function cfu_load_model() {
 };
 
 async function cfu_detect() {
+   var id = parseInt($("#image")[0].src.split('/images/')[1])
+   id = id?id:'';
+   
+   $.get(`/hive/${id}`, function(data, status) {
+      cfu_clear();
+      cfu_arr = data;
+      console.log(data);
+      for (let i=0;i<cfu_arr.length;i++) {
+         cfu_add(cfu_arr[i]);
+      }
+      cfu_update_counts();
+   });
+}
+
+async function cfu_detect_browser() {
    let start = Date.now()
 
    // clear overlay and cfu array
@@ -105,5 +120,7 @@ function cfu_compare(a,b) {
 
 // load ML-model
 $(document).ready(function() {
-   cfu_load_model();
+   //cfu_load_model();
+   $('#detect').on('click', cfu_detect)
+   $('#detect').prop('disabled', false);
 });

@@ -83,6 +83,10 @@ def to_png(image):
 	ret, image_encoded = cv2.imencode('.png', image, params)
 	return image_encoded.tobytes()
 
+def from_buffer(img_buf:bytes):
+	np_arr = np.frombuffer(img_buf, np.uint8)
+	return cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
 def mask_image(img_org, settings):
 	if settings['crop_drawonly']:
 		return draw_mask(img_org, settings)

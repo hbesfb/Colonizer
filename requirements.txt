@@ -14,3 +14,5 @@ adafruit-circuitpython-neopixel-spi~=1.0.10
 redis~=5.1.0
 watchdog~=5.0.3
 picamera2~=0.3.21
+openvino~=2024.6.0
+supervision~=0.25.1
