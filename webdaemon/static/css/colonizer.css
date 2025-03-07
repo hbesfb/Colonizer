@@ -147,3 +147,23 @@ tr.table-subheader td{
   font-size: smaller;
   text-align: center;
 }
+
+.settleplate-list {
+  overflow-y: scroll;
+  position: relative;
+  border-radius: 0.25rem;
+}
+
+.settleplate-list th {
+  /*
+  position: sticky;
+  top: 0;
+  */
+  text-align: center;  
+}
+
+.settleplate-list td {
+  text-align: center;
+  font-size: small;
+  font-family: monospace, monospace;
+}

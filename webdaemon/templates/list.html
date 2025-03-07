@@ -24,18 +24,18 @@
 		<button class="btn btn-primary" type="button" id="search">Search</button>
 	</div>
 </div>
-<form class="form" method="post">
+<div class="settleplate-list"><form class="form" method="post">
 	<table class="table table-sm table-striped">
 		<thead class="thead-light">
 			{% if g.isAdmin %}
-			<th scope="col"><i class="fa fa-trash"></i></th>
+			<th><i class="fa fa-trash"></i></th>
 			{% endif %}
-			<th scope="col">Scandate</th>
-			<th class="text-center" scope="col">Barcode</th>
-			<th class="text-center" scope="col">Counts</th>
-			<th class="text-center" scope="col">Username</th>
-			<th class="text-center" scope="col">Batch</th>
-			<th class="text-center" scope="col">Location</th>
+			<th>Scandate</th>
+			<th>Barcode</th>
+			<th>Counts</th>
+			<th>Username</th>
+			<th>Batch</th>
+			<th>Location</th>
 		</thead>
 		<tbody>
 			{% for sp in settleplates %}
@@ -47,22 +47,22 @@
 					</div>
 				</td>
 				{% endif %}
-				<td class="text-monospace" scope="col"><small><a
-						href="/settleplate/{{ sp.ID }}">{{ sp.ScanDate.strftime("%Y-%m-%d %H:%M") }}</a></small>
+				<td><a
+						href="/settleplate/{{ sp.ID }}">{{ sp.ScanDate.strftime("%Y-%m-%d %H:%M") }}</a>
 				</td>
-				<td class="text-center text-monospace" scope="col"><small>{{ sp.Barcode }}</small></td>
-				<td class="text-center text-monospace" scope="col"><small>{{ sp.Counts if (sp.Counts != -1) else 'reg' }}</small></td>
-				<td class="text-center text-monospace" scope="col"><small>{{ sp.Username }}</small></td>
-				<td class="text-center text-monospace" scope="col"><small>{{ sp.Batch }}</small></td>
-				<td class="text-center text-monospace" scope="col"><small>{{ sp.Location }}</small></td>
+				<td>{{ sp.Barcode }}</td>
+				<td>{{ sp.Counts if (sp.Counts != -1) else 'reg' }}</td>
+				<td>{{ sp.Username }}</td>
+				<td>{{ sp.Batch }}</td>
+				<td>{{ sp.Location }}</td>
 			</tr>
 			{% endfor %}
-		<tbody>
+		</tbody>
 	</table>
 	{% if g.isAdmin %}
 	<button type="submit" class="btn btn-primary">Delete selected</button>
 	{% endif %}
-</form>
+</form></div>
 {% endblock %}
 
 {% block scripts %}
