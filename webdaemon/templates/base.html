@@ -31,6 +31,10 @@
             <script src="/static/jquery/jquery.min.js"></script>
             <script src="/static/bootstrap/js/bootstrap.bundle.min.js"></script>
             <script src="/static/fontawesome/js/all.min.js"></script>
+            <script>
+                setTimeout(location.reload.bind(location), {{(g.timeout+5)*1000}}); // reload page after inactivity to present login page
+                console.log("Logout after {{g.timeout}} seconds");
+            </script>
         {% endblock %}
     </body>
 </html>

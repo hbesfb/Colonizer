@@ -4,6 +4,7 @@
   padding-left: 0px;
   padding-right: 0px;
   padding-bottom: 5px;
+  height: 100vh;
 } 
 
 .label-text {
@@ -148,17 +149,15 @@ tr.table-subheader td{
   text-align: center;
 }
 
+/* Make list scrollable with fixed header */
 .settleplate-list {
   overflow-y: scroll;
-  position: relative;
   border-radius: 0.25rem;
 }
 
 .settleplate-list th {
-  /*
   position: sticky;
   top: 0;
-  */
   text-align: center;  
 }
 
@@ -166,4 +165,15 @@ tr.table-subheader td{
   text-align: center;
   font-size: small;
   font-family: monospace, monospace;
+}
+
+/* Prevent interface to be larger than screen */
+
+.card {
+  max-height: 100%;
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
 }

@@ -41,7 +41,8 @@ def page_not_found(e):
 	# note that we set the 404 status explicitly
 	return render_template('404.html'), 404
 
-# test server
+# some variables used when rendering
 @app.before_request
-def test_server_check():
+def pre_checks():
 	g.testserver = settings['general']['testserver']
+	g.timeout = settings['general']['timeout']
