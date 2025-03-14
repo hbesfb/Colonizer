@@ -1,7 +1,8 @@
-var cfu_arr;
+var cfus;
 var results;
 var model;
 var show_low = true;
+var rect_min_size = 0.015;
 var threshold_high = 0.50;  // min threshold to count CFU automatically
 console.log("CFU-draw - initialized")
 
@@ -33,20 +34,30 @@ function cfu_setAspect() {
 function cfu_toggle(id) {
    let element = document.getElementById(id);
    element.classList.toggle('CFU-positive');
-   let index = Number(id.split('-')[1]);
-   cfu_arr[index].override = !cfu_arr[index].override;
-   console.log(index);
+   let cfu_id = Number(id.split('-')[1]);
+   cfus[cfu_id].override = !cfus[cfu_id].override;
+   console.log(cfu_id);
    cfu_update_counts();
 }
 
 function cfu_clear() {
    $('#overlay').empty();
+   cfus = {};
    //$('#Counts').val(0);
+}
+
+function bbox_pad(bbox, minsize) {
+   let [ymin,xmin,ymax,xmax] = bbox;
+   let width = xmax-xmin;
+   let height = ymax-ymin;
+   let xpad = (Math.max(width, minsize)-width) / 2;
+   let ypad = (Math.max(height, minsize)-height) / 2;
+   return [ymin-ypad, xmin-xpad,ymax+ypad,xmax+xpad];
 }
 
 function cfu_add(cfu) {
    const radius = 0.2;
-   let [ymin,xmin,ymax,xmax] = cfu.bbox;
+   let [ymin,xmin,ymax,xmax] = bbox_pad(cfu.bbox, rect_min_size);
    let width = xmax-xmin;
    let height = ymax-ymin;
    let rect = $(document.createElementNS("http://www.w3.org/2000/svg", "rect"));
@@ -77,6 +88,7 @@ function cfu_add(cfu) {
    )
 
    $('#overlay').append(group);
+   cfus[cfu.id] = cfu;
 }
 
 function cfu_update_counts() {
@@ -85,20 +97,19 @@ function cfu_update_counts() {
 }
 
 function cfu_export() {
-   let cfu_json = []
+   let cfu_arr = []
    $('.CFU-positive').each(function() {
-      index = Number($(this)[0].id.split('-')[1]);
-      cfu_json.push(cfu_arr[index]);
+      cfu_id = Number($(this)[0].id.split('-')[1]);
+      cfu_arr.push(cfus[cfu_id]);
    })
-   return JSON.stringify(cfu_json);
+   return JSON.stringify(cfu_arr);
 }
 
 function cfu_import(jsondata) {
    cfu_clear();
-   cfu_arr = JSON.parse(jsondata);
+   let cfu_arr = JSON.parse(jsondata);
+   // convert from array to dictionary, add cfu to svg
    cfu_arr.forEach(cfu => {
       cfu_add(cfu);
    });
-   // counts should be same as in db, if not it has been set manually and should be kept
-   //cfu_update_counts();
 }

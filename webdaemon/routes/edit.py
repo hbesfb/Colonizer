@@ -41,4 +41,4 @@ def edit_settleplate(settleplate_id):
 		db.session.commit()
 		return redirect(url_for('list.settleplates'))
 
-	return render_template('settleplate.html', settleplate=sp, form=form, readonly=readonly, updated=updated)
+	return render_template('settleplate.html', settleplate=sp, form=form, readonly=readonly, updated=updated, hive_settings=settings['hive'])

@@ -19,6 +19,7 @@
 			$("#SPform").on("submit", save_cfu);
 			$('[data-toggle="tooltip"]').tooltip();
 			load_cfu();
+			threshold_high = {{ hive_settings['confidence_threshold_high'] }}
 		});
 		function save_cfu() {
 			$("#Colonies").val(cfu_export()); 

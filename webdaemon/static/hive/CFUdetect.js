@@ -26,10 +26,8 @@ async function cfu_detect() {
    var id = parseInt($("#image")[0].src.split('/images/')[1])
    id = id?id:'';
    
-   $.get(`/hive/${id}`, function(data, status) {
+   $.get(`/hive/${id}`, function(cfu_arr, status) {
       cfu_clear();
-      cfu_arr = data;
-      console.log(data);
       for (let i=0;i<cfu_arr.length;i++) {
          cfu_add(cfu_arr[i]);
       }
@@ -42,7 +40,7 @@ async function cfu_detect_browser() {
 
    // clear overlay and cfu array
    cfu_clear();
-   cfu_arr = [];
+   let cfu_arr = [];
 
    // get image and convert to tensor
    let img_element = document.getElementById('image');

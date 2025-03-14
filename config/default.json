@@ -42,6 +42,11 @@
    "users": {
       "admin": "admin"
    },
+   "hive": {
+      "confidence_threshold_low": 0.2,
+      "confidence_threshold_high": 0.5,
+      "iou_threshold": 0.5
+   },
    "camera": {
       "_default": {
          "cam_crop": [676, 30, 3008, 3008],

@@ -2,10 +2,7 @@ import cv2
 import openvino as ov
 import numpy as np
 import supervision as sv
-
-# settings
-threshold_confidence = 0.2
-threshold_IoU = 0.5
+from settings import settings
 
 # load model
 core = ov.Core()
@@ -25,7 +22,7 @@ def detect_cfu(img : np.ndarray):
    result = cmodel(img_tensor)[cmodel.output()][0].T
 
    # only use detections above confidence threshold
-   indexes = np.where(result[:,4:]>threshold_confidence)[0]
+   indexes = np.where(result[:,4:]> settings['hive']['confidence_threshold_low'])[0]
    thresholded = result[indexes].T
    # convert xy center & width and height to corners
    xyxy = thresholded[0:4]
@@ -35,7 +32,7 @@ def detect_cfu(img : np.ndarray):
    label = np.argmax(thresholded[4:],axis=0).astype(np.intc)
    confidence = np.choose(label,thresholded[4:])
    detections = sv.Detections(xyxy.T,confidence=confidence,class_id=label)
-   detections_nms = detections.with_nms(threshold=threshold_IoU)
+   detections_nms = detections.with_nms(threshold=settings['hive']['iou_threshold'])
    
    # print results
    labels = ['single', 'multi', 'bubble']
