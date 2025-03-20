@@ -2,7 +2,6 @@ from flask import Blueprint, current_app, render_template, request, jsonify, g
 from webdaemon.model import Settleplate
 from webdaemon.database import db
 from webdaemon.barcodeparser import Decoder
-from settings import settings
 
 blueprint = Blueprint("register",__name__,url_prefix="/settleplate")
 
@@ -28,6 +27,7 @@ def register():
 		new_sp.Counts = -1
 		db.session.add(new_sp)
 		db.session.commit()
+		current_app.logger.info(f"User {g.username} registered settleplate : {new_sp.ID}")
 
 	return jsonify({'commited':True})
 

@@ -33,10 +33,10 @@ def edit_settleplate(settleplate_id):
 			except:
 				current_app.logger.error(f"Failed to update : {sp.ID}")
 			else:
-				current_app.logger.info(f"Updating settleplate : {sp.ID}")
+				current_app.logger.info(f"User {g.username} edited settleplate : {sp.ID}")
 				updated = True
 	elif action == "delete" and not readonly:
-		current_app.logger.info(f"Deleting settleplate : {sp.ID}")
+		current_app.logger.info(f"User {g.username} deleting settleplate : {sp.ID}")
 		db.session.delete(sp)
 		db.session.commit()
 		return redirect(url_for('list.settleplates'))

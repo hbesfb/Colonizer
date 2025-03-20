@@ -42,7 +42,7 @@ def scan():
 				return jsonify({'committed':False})
 			else:
 				dt = round((sp.ScanDate - plateinfo.ScanDate).total_seconds() / 3600) # convert to hours
-				current_app.logger.info(f'Saved {sp.Barcode} to DB with {sp.Counts} counts')
+				current_app.logger.info(f'User {g.username} scanned {sp.ID} to DB with {sp.Counts} counts')
 				return jsonify({'committed':True, 'Counts': sp.Counts, 'ID': sp.ID, 'dT': dt })
 		else:
 			return jsonify({'committed':False})

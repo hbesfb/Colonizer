@@ -37,7 +37,9 @@
       "savepath": "/mnt/data/Data/Colonizer/",
       "autocount": true,
       "sameuser": true,
-      "testserver": true
+      "testserver": false,
+      "positive_test_required": true,
+      "positive_test_location": "PositiveTest"
    },
    "users": {
       "admin": "admin"

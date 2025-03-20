@@ -1,6 +1,6 @@
 from datetime import datetime
 #from webdaemon import app
-from flask import Blueprint, current_app, render_template, request, jsonify, redirect, make_response, Response, session, url_for, g, abort
+from flask import Blueprint, current_app, render_template, request, redirect,session, url_for, g
 from settings import settings, user_validator
 
 blueprint = Blueprint("users",__name__)

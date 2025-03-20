@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, date
-from flask import Blueprint, render_template, g, abort, redirect, url_for, request
+from flask import Blueprint, render_template, g, abort, request
 from webdaemon.model import Settleplate
 from webdaemon.database import db
 from sqlalchemy import func, cast, and_

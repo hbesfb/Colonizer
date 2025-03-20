@@ -83,7 +83,7 @@ def save_image():
 		filepath = os.path.join(settings['general']['savepath'], filename)
 		with open(filepath,'wb') as f:
 			img_out = session['image_jpeg']
-			current_app.logger.info('Saving image to: %s (%d kB)'%(filename,len(img_out)/1024))
+			current_app.logger.info('User {g.username} saving image to: %s (%d kB)'%(filename,len(img_out)/1024))
 			f.write(img_out)
 	except Exception as error:
 		current_app.logger.error('Failed to write image: %s'%error)

@@ -1,9 +1,11 @@
 var new_batch;
 var new_serial;
-var new_lotno;
 var new_location;
 var text_input;
 var batch_locations;
+var positive_batch;
+var positive_location;
+var positive_serial;
 
 const GLYPH = {
    WAIT: 'wait',
@@ -31,7 +33,6 @@ function transition(new_state) {
       case STATE.BATCH:
          new_batch=null;
          new_serial=null;
-         new_lotno=null;
          new_location=null;
          text_input = "";
          $("#barcode").val(text_input);
@@ -39,7 +40,7 @@ function transition(new_state) {
          update_fields();
          update_table();
          set_glyph($("#batch_glyph"),GLYPH.ACTIVE);
-         set_glyph($("#lotno_glyph"),GLYPH.WAIT);
+         set_glyph($("#serial_glyph"),GLYPH.WAIT);
          set_glyph($("#location_glyph"),GLYPH.WAIT);
          set_glyph($("#input_glyph"),GLYPH.ACTIVE);
          state=STATE.BATCH;
@@ -47,7 +48,6 @@ function transition(new_state) {
 
       case STATE.LOOP:
          new_serial=null;
-         new_lotno=null;
          new_location=null;
          set_glyph($("#location_glyph"),GLYPH.WAIT);
 
@@ -55,13 +55,13 @@ function transition(new_state) {
          update_fields();
          update_table();
          set_glyph($("#batch_glyph"),GLYPH.PASS);
-         set_glyph($("#lotno_glyph"),GLYPH.ACTIVE);
+         set_glyph($("#serial_glyph"),GLYPH.ACTIVE);
          state=STATE.SERIAL;
          break;
 
       case STATE.LOCATION:
          update_fields();
-         set_glyph($("#lotno_glyph"),GLYPH.PASS);
+         set_glyph($("#serial_glyph"),GLYPH.PASS);
          set_glyph($("#location_glyph"),GLYPH.ACTIVE);
          state=STATE.LOCATION;
          break;
@@ -79,10 +79,7 @@ function process_input(data) {
       case STATE.BATCH:
          if("batch" in data) {
             new_batch = data.batch;
-            input_pass();
             transition(STATE.SERIAL);
-         } else {
-            input_fail();
          }
          break;
       
@@ -91,13 +88,9 @@ function process_input(data) {
             // check if settleplate already registered
             if(data.used > 0) {
                $("#duplicate-plate").slideDown();
-               input_fail();
             } else {
                $("#duplicate-plate").slideUp();
                new_serial = data.serial;
-               if("lot" in data) new_lotno = data.lot;
-               else new_lotno = data.serial;
-               input_pass();
                transition(STATE.LOCATION);
             }
             let expire = new Date(data.expire);
@@ -109,8 +102,6 @@ function process_input(data) {
                $("#expired-plate").slideDown();
                $("#expire-date").text(expire.toLocaleDateString());
             }
-         } else {
-            input_fail();
          }
          break;
 
@@ -118,34 +109,18 @@ function process_input(data) {
          if("location" in data) {
             if (location_exist(data["location"])) {
                $("#duplicate-location").slideDown();
-               input_fail();
             } else {
                $("#duplicate-location").slideUp();
                $("#expired-plate").slideUp();
                new_location = data.location;
-               input_pass();
                transition(STATE.REGISTER);
             }
-         } else {
-            input_fail();
          }
          break;
 
       default:
          break;
    }
-}
-
-function input_pass() {
-   set_glyph($("#input_glyph"),GLYPH.PASS);
-   input_clear_timeout = setTimeout(function() {
-      set_glyph($("#input_glyph"),GLYPH.ACTIVE);
-      $("#barcode").val(null);
-   }, 2000);
-}
-
-function input_fail() {
-   set_glyph($("#input_glyph"),GLYPH.FAIL);
 }
 
 function set_glyph(glyph, state) {
@@ -188,9 +163,37 @@ function location_exist(location) {
 }
 
 function update_fields() {
-   $("#lotno").val(new_lotno);
+   $("#serial").val(new_serial);
    $("#location").val(new_location);
    $("#batch").val(new_batch);
+}
+
+function check_positive(data) {
+   if(data.no_positive) {
+      $("#no-positive").slideDown();
+      $("#no-positive-lot").text(data.lot);
+      $("#serial").val(data.serial);
+      positive_batch = data.no_positive_batch;
+      positive_location = data.no_positive_location;
+      positive_serial = data.serial;
+   } else {
+      $("#no-positive").slideUp();
+      positive_batch = null;
+      positive_location = null;
+      positive_serial = null;
+   }
+}
+
+function register_positive() {
+   $("#no-positive").slideUp();
+   new_serial = positive_serial;
+   new_location = positive_location;
+   new_batch = positive_batch;
+   set_glyph($("#location_glyph"),GLYPH.PASS);
+   set_glyph($("#batch_glyph"),GLYPH.PASS);
+   set_glyph($("#serial_glyph"),GLYPH.PASS);
+   update_fields();
+   //register_new();
 }
 
 function register_new() {
@@ -223,6 +226,7 @@ function decode_text() {
       data: JSON.stringify(text_input),
          success: function (data) {
             console.log(data);
+            check_positive(data);
             process_input(data);
          },
       dataType: "json"
@@ -244,6 +248,9 @@ $(document).ready(function() {
          text_input = "";
       }
    });
+
+   $('#no-positive-link').on("click", register_positive);
+
    // prevent submit on enter press
    $(window).keydown(function(event){
     if(event.keyCode == 13) {

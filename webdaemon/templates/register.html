@@ -16,18 +16,18 @@
 	</div>
 </div>
 <div class="row">
-	<div class="col form-group">
+	<div class="col-7 form-group">
 		<div class="input-group">
 			<div class="input-group-prepend">
-				<label class="input-group-text" style="width: 90px;">Lot/No</label>
+				<label class="input-group-text" style="width: 90px;">Serial</label>
 			</div>
-			<input type="text" class="form-control" id="lotno" readonly placeholder="&lt;lotno&gt;">
+			<input type="text" class="form-control" id="serial" readonly placeholder="&lt;serial&gt;">
 			<div class="input-group-append">
-					<div class="input-group-text"><i class="fa" id="lotno_glyph"></i></div>
+					<div class="input-group-text"><i class="fa" id="serial_glyph"></i></div>
 			</div>
 		</div>
 	</div>
-	<div class="col form-group">
+	<div class="col-5 form-group">
 		<div class="input-group">
 			<div class="input-group-prepend">
 				<label class="input-group-text" style="width: 90px;">Location</label>
@@ -49,6 +49,9 @@
 </div>
 <div class="alert alert-warning" id="expired-plate" style="display: none;">
 	<strong>Warning!</strong>&nbsp;Settleplate is passed expire date. (<span id="expire-date"></span>)
+</div>
+<div class="alert alert-warning" id="no-positive" style="display: none;">
+	<strong>Warning!</strong>&nbsp;No positive test for settleplate lot #<span id="no-positive-lot"></span>. <button class="btn btn-outline-warning btn-sm float-right" id="no-positive-link">Register now</button>
 </div>
 
 <table class="table table-sm table-striped">

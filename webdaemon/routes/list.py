@@ -1,9 +1,7 @@
 from datetime import datetime, timedelta, date
-#from webdaemon import app
-from flask import Blueprint, current_app, render_template, request, jsonify, g
+from flask import Blueprint, current_app, render_template, request, g
 from webdaemon.model import Settleplate
 from webdaemon.database import db
-from settings import settings
 
 blueprint = Blueprint("list",__name__,url_prefix="/settleplate")
 
@@ -16,13 +14,12 @@ def settleplates():
 			settleplate = Settleplate.query.get(int(settleplate_id))
 			db.session.delete(settleplate)
 		db.session.commit()
-		current_app.logger.info(f"Deleting settleplates : {selected}")
+		current_app.logger.info(f"User {g.username} deleting settleplates : {selected}")
 
 	# define search from request data
 	date_from = request.args.get('from', (date.today() - timedelta(days=7)).isoformat(), str)
 	date_to = request.args.get('to', (date.today()).isoformat(), str)
 	batch = request.args.get('batch', "", str)
-	#batch.replace('_','__') # escape wildcard
 
 	#define query
 	query = Settleplate.query
