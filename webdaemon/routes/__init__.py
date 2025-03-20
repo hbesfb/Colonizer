@@ -1,4 +1,4 @@
-from webdaemon import app
+from webdaemon import app, __version__
 from flask import render_template, redirect, url_for, g
 from sqlalchemy.exc import SQLAlchemyError
 from settings import settings
@@ -46,3 +46,4 @@ def page_not_found(e):
 def pre_checks():
 	g.testserver = settings['general']['testserver']
 	g.timeout = settings['general']['timeout']
+	g.version = __version__

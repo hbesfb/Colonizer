@@ -177,3 +177,13 @@ tr.table-subheader td{
   display: flex;
   flex-direction: column;
 }
+
+/* Version under brand */
+nav .navbar-brand p {
+  margin-top: 0;
+  margin-bottom: 0;
+
+}nav .navbar-brand p:last-of-type {
+  font-size: 0.75rem;
+  opacity: 0.5;
+}

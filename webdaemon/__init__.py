@@ -5,13 +5,15 @@ from redis import Redis
 from flask import Flask
 from flask_session import Session
 from settings import settings, get_secret
-from webdaemon.status import servicemonitor
+from .status import servicemonitor
 from webdaemon.database import init_database, create_database
+from webdaemon.version import __version__
 import hwlayer.client as hwclient
 
 # create flask app
 app = Flask(__name__)
 app.logger.setLevel(logging.INFO)
+app.logger.info(f'Starting Colonizer v{__version__}')
 
 # load settings
 config_file = os.environ.get('SETTLEPLATE_CONFIG','default')

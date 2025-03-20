@@ -193,7 +193,7 @@ function register_positive() {
    set_glyph($("#batch_glyph"),GLYPH.PASS);
    set_glyph($("#serial_glyph"),GLYPH.PASS);
    update_fields();
-   //register_new();
+   register_new();
 }
 
 function register_new() {

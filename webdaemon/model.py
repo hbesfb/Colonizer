@@ -3,6 +3,7 @@ from sqlalchemy.orm import deferred
 from flask_wtf import FlaskForm
 from wtforms import StringField, DateTimeField, DateField, FloatField, IntegerField, validators, HiddenField, FieldList
 from webdaemon.database import db
+from webdaemon.version import __version__
 
 # using sqlacodegen db_uri
 
@@ -26,7 +27,7 @@ class Settleplate(db.Model):
 			super(Settleplate, self,).__init__(**kwargs)
 			self.ScanDate = datetime.now()
 			self.Exported = False
-			self.Version = 'WebApp 2.0'
+			self.Version = f"WebApp {__version__}"
 
 	def __repr__(self):
 		return '<Settleplate %r>' % self.ID
