@@ -179,11 +179,13 @@ tr.table-subheader td{
 }
 
 /* Version under brand */
+nav .navbar-brand span {
+  position: relative;
+}
 nav .navbar-brand p {
-  margin-top: 0;
-  margin-bottom: 0;
-
-}nav .navbar-brand p:last-of-type {
+  position: absolute;
+  margin: 0;
   font-size: 0.75rem;
   opacity: 0.5;
+  top: +1.5rem;
 }
