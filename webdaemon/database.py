@@ -21,3 +21,9 @@ def create_database(app):
 	from webdaemon.model import Settleplate
 	with app.app_context():
 		db.create_all()
+
+def create_database_cmd():
+	from webdaemon.model import Settleplate
+	from sqlalchemy.dialects import mssql
+	from sqlalchemy.schema import CreateTable
+	return CreateTable(Settleplate.__table__).compile(dialect=mssql.dialect())

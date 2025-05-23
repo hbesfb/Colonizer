@@ -23,8 +23,9 @@ def parse_string():
 	if 'lot' in result and settings['general']['positive_test_required']:
 		batchname = settings['general']['positive_test_prefix']+result['lot']
 		result['no_positive'] = db.session.query(Settleplate.ScanDate).filter(
+			#Settleplate.Lot_no == result['lot'],
+			Settleplate.Batch.like(batchname),
 			Settleplate.Counts > 0,
-			Settleplate.Batch.like(batchname)
 		).first() is None
 		if result['no_positive']:
 			result['no_positive_batch'] = batchname

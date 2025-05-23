@@ -44,6 +44,11 @@ def start_camera():
    log.info('Setting up camera')
    camera = PiHQCamera2()
 
+def start_illumination():
+   illumination.clear()
+   illumination.set_status([255,0,0])
+   illumination.run()
+
 def main():
    # time to wait for request before doing housekeeping
    timeout = 5000 # ms
@@ -122,9 +127,7 @@ def main():
 
 if __name__ == '__main__':
    # load settings
-   illumination.clear()
-   illumination.set_status([255,0,0])
-   illumination.run()
+   start_illumination()
    start_socket()
    start_camera()
    try:

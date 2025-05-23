@@ -41,10 +41,5 @@ class SettleplateForm(FlaskForm):
 	Counts = IntegerField('Counts')
 	Location = StringField('Location', [validators.DataRequired("Location needed")])
 	Batch = StringField('Batch', [validators.DataRequired("Batch# needed")])
-	Colonies = HiddenField('Colonies') #, filters=[lambda x: x.decode('utf8') if type(x) is bytes else x])
+	Colonies = HiddenField('Colonies')
 	Version = StringField('Version', render_kw={'readonly': True})
-
-	#def validate_Colonies(form, field):
-	#	if type(field.data) is str:
-	#		field.data = field.data.encode('utf8')
-	#	return type(field.data) is bytes
