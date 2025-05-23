@@ -31,7 +31,7 @@ def hiscore(when:str):
 	else:
 		abort(404)
 
-	# cast barcode from text to varchar, sowe can use group_by
+	# cast barcode from text to varchar, so we can use group_by
 	barcode_cast = cast(Settleplate.Barcode,db.VARCHAR(128))
 	# return only maximum counts per unique barcode
 	max_counts = func.max(Settleplate.Counts).label('max_counts')

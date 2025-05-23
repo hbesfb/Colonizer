@@ -26,6 +26,8 @@ class Illumination():
 			'ring':   range(LED_STATUS,LED_RING+LED_STATUS),
 			'top':	 range(LED_RING+LED_STATUS,LED_STATUS+LED_RING+LED_TOP)
 		}
+		self._logger.info(f"Ring :{self.segment['ring'][0]}-{self.segment['ring'][-1]}")
+		self._logger.info(f"Top  :{self.segment['top'][0]}-{self.segment['top'][-1]}")
 
 		self._thread = None
 		self._thread_stop = Event()
@@ -33,6 +35,7 @@ class Illumination():
 		self._timer = Timer(0, self.stop)
 
 		# ensure all leds are off
+		self._logger.info("Clearing LEDs")
 		self.clear()
 
 	def set_status(self, color):
