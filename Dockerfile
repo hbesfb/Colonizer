@@ -42,10 +42,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ---------------- Install Sass globally ----------------
 RUN npm install -g sass@1.91.0
 
-# ---------------- Copy startup script, create user ----------------
-COPY startup.sh /usr/local/bin/
-RUN useradd -m -s /bin/bash ${APP_USER} \
-	&& chmod +x /usr/local/bin/startup.sh
+# ---------------- Create user ----------------
+RUN useradd -m -s /bin/bash ${APP_USER}
 
 # ---------------- Frontend assets ----------------
 WORKDIR $APP_HOME/webdaemon/static/bootstrap
