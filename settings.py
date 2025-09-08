@@ -1,6 +1,7 @@
 import os
 import secrets
 import json
+import re
 from threading import Timer
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
@@ -40,6 +41,30 @@ class Settings(FileSystemEventHandler):
 	@property
 	def data(self):
 		return self._data.copy()
+	
+	def _substitute_env_vars(self, obj):
+		"""
+		Recursively substitute environment variables in the format ${VAR_NAME}
+		"""
+		if isinstance(obj, dict):
+			return {key: self._substitute_env_vars(value) for key, value in obj.items()}
+		elif isinstance(obj, list):
+			return [self._substitute_env_vars(item) for item in obj]
+		elif isinstance(obj, str):
+			# Find all ${VAR_NAME} patterns and replace them
+			def replace_env_var(match):
+				env_var = match.group(1)
+				env_value = os.environ.get(env_var)
+				if env_value is None:
+					if self._logger:
+						self._logger.warning(f"Environment variable '{env_var}' not found, keeping original value")
+					return match.group(0)  # Return original ${VAR_NAME} if not found
+				return env_value
+			
+			# Replace ${VAR_NAME} patterns
+			return re.sub(r'\$\{([^}]+)\}', replace_env_var, obj)
+		else:
+			return obj
 
 	def load(self, filepath: str = ''):
 		if filepath == '':
@@ -47,15 +72,19 @@ class Settings(FileSystemEventHandler):
 		# load file
 		try:
 			with open(filepath,'r') as f:
-				self._data = json.load(f)
+				raw_data = json.load(f)
+
+			# Substitute environment variables
+			self._data = self._substitute_env_vars(raw_data)
+
 			if self._logger:
 				self._logger.info(f"Settings loaded from {filepath}")
 			# call listeners
 			for func in self._listeners: func()
 			return True
-		except:
+		except Exception as e:
 			if self._logger:
-				self._logger.info(f"Error loading settings from {filepath}")
+				self._logger.info(f"Error loading settings from {filepath}: {str(e)}")
 			return False
 
 	def save(self):
