@@ -26,17 +26,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	libgl1=1.7.0-1+b2 \
 	libglib2.0-0 \
 	gcc=4:14.2.0-1 \
-	libpq-dev=17.5-1 \
+	libpq-dev=17.6-0+deb13u1 \
 	curl=8.14.1-2 \
 	wget=1.25.0-2 \
 	unzip=6.0-29 \
-	git==1:2.47.2-0.2 \
+	git=1:2.47.3-0+deb13u1 \
 	redis-server=5:8.0.2-3 \
 	postgresql-client=17+278 \
 	python3-venv=3.13.5-1 \
 	nodejs=20.19.2+dfsg-1 \
 	npm=9.2.0~ds1-3 \
-	nginx=1.26.3-3 \
+	nginx=1.26.3-3+deb13u1 \
+	libcap-dev \
 	&& rm -rf /var/lib/apt/lists/*
 
 # ---------------- Install Sass globally ----------------
