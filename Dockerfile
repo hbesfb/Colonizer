@@ -75,7 +75,7 @@ RUN wget -q https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/10.1.0/jsoneditor.
 # ---------------- Copy application & requirements ----------------
 WORKDIR $APP_HOME
 COPY requirements.txt . 
-COPY ./install/etc/nginx ./install/etc/nginx
+COPY . .
 
 # ---------------- Python virtual environment ----------------
 RUN python3 -m venv $APP_HOME/venv \
