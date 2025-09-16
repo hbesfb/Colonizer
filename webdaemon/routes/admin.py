@@ -3,7 +3,7 @@ from settings import settings
 
 blueprint = Blueprint("admin",__name__, url_prefix="/admin")
 
-@blueprint.route('/settings', methods=['get'])
+@blueprint.route('/settings', methods=['GET'])
 def admin_settings():
 	if not g.isAdmin:
 		abort(404)
