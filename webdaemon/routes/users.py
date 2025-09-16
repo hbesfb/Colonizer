@@ -12,7 +12,7 @@ def login_check():
 	session.modified = True
 
 	g.username = session.get('user')
-	g.isAdmin = (g.username == 'admin')
+	g.isAdmin = g.username in settings['users']
 
 	if request.path.startswith(('/status')):
 		return
