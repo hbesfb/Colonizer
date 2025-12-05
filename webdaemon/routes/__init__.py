@@ -14,16 +14,24 @@ from . import users
 from . import hiscore
 from . import hive
 
-app.register_blueprint(admin.blueprint)
-app.register_blueprint(edit.blueprint)
-app.register_blueprint(images.blueprint)
-app.register_blueprint(list.blueprint)
-app.register_blueprint(register.blueprint)
-app.register_blueprint(scan.blueprint)
-app.register_blueprint(tools.blueprint)
-app.register_blueprint(users.blueprint)
-app.register_blueprint(hiscore.blueprint)
-app.register_blueprint(hive.blueprint)
+# -------------------------------
+# Register blueprints
+# -------------------------------
+blueprints = [
+	admin,
+	edit,
+	images,
+	list,
+	register,
+	scan,
+	tools,
+	users,
+	hiscore,
+	hive,
+]
+
+for bp in blueprints:
+	app.register_blueprint(bp.blueprint)
 
 # error handler for SQL errors:
 @app.errorhandler(SQLAlchemyError)

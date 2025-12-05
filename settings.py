@@ -62,7 +62,7 @@ class Settings(FileSystemEventHandler):
 			# Replace ${VAR_NAME} patterns
 			return re.sub(r'\$\{([^}]+)\}', replace_env_var, obj)
 		else:
-			return obj  # Handle any other types (eg numbers, booleans, etc.)
+			return obj  # Handle any other types (numbers, booleans, etc. eg port : 8000 an integer)
 
 	def load(self, filepath: str = ''):
 		if filepath == '':
