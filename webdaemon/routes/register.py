@@ -10,8 +10,13 @@ def register():
 	if request.method == 'GET':
 		return render_template('register.html')
 
-	data = request.get_json()
-	data.update(Decoder.parse_input(data['serial'])) # parse serial and add result to data dictionary
+	data = request.get_json() or {} # safely get JSON even if body is missing or invalid
+	
+	serial = data.get('serial')
+	if serial:
+		parsed = Decoder.parse_input(serial)
+		if parsed:
+			data.update(parsed)
 		
 	required = ['batch', 'serial', 'location']
 	if all([k in data for k in required]):
@@ -25,16 +30,35 @@ def register():
 		if 'expire' in data:
 			new_sp.Expires = data['expire']
 		new_sp.Counts = -1
-		db.session.add(new_sp)
-		db.session.commit()
-		current_app.logger.info(f"User {g.username} registered settleplate : {new_sp.ID}")
 
-	return jsonify({'commited':True})
+		try:
+			db.session.add(new_sp)
+			db.session.commit()
+			current_app.logger.info(f"User {g.username} registered settleplate : {new_sp.ID}")
+		except Exception as e:
+			current_app.logger.error(f"Failed to register settleplate: {str(e)}")
+			return jsonify({
+				'commited': False,   # TODO: fix legacy misspelling
+				'error': 'db_write_failed'
+			})
+
+		# Success response
+		return jsonify({
+			'commited': True, # TODO: fix legacy misspelling
+			'id': new_sp.ID
+		})
+
+	# Error response if required fields missing
+	current_app.logger.warning("Register request missing required fields")
+	return jsonify({
+		'commited': False,  # TODO: fix legacy misspelling
+		'error': 'Missing required fields'
+	})
 
 @blueprint.route('/batch_bydate', methods=(['POST']))
 def batch_bydate():
-	data = request.get_json()
-	batch_id = data['batch']
+	data = request.get_json() or {}
+	batch_id = data.get('batch', "")
 	if len(batch_id):
 		limit=25
 		results = db.session.query(Settleplate.ScanDate, Settleplate.Barcode, Settleplate.Location).filter(Settleplate.Batch.like(batch_id)).order_by(Settleplate.ScanDate.desc()).limit(limit).all()
