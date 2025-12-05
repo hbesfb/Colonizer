@@ -17,8 +17,6 @@ def login_check():
 	# Allow requests for static files and status endpoint to skip login check
 	if request.path.startswith("/static/"):
 		return
-	if request.path.startswith("/static/"):
-		return
 
 	if request.path.startswith(('/status')):
 		return
