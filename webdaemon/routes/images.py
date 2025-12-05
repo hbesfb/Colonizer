@@ -65,7 +65,7 @@ def get_image(image_id):
 		return redirect("/static/settleplate.svg")
 	else:
 		img = make_response(sp.Image)
-		img.headers.set('Content-Type', 'image/jpg')
+		img.headers.set('Content-Type', 'image/jpg') #TODO: stick to jpeg for consistency?
 		img.headers.set('Content-Disposition', 'attachment', filename=f"{image_id}.jpg")
 		return img
 
@@ -95,7 +95,7 @@ def save_image():
 def capture():
 	modes = list(settings['camera'].keys())
 	# remove debug settings if not admin
-	if not g.isAdmin:
+	if not getattr(g, 'isAdmin', False):
 		modes = [m for m in modes if not m.startswith('_')]
 
 	# use this as default setting

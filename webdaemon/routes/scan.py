@@ -1,9 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import Blueprint, current_app, render_template, request, jsonify, session, g
 from webdaemon.model import Settleplate, SettleplateForm
 from webdaemon.database import db
 from settings import settings
-from datetime import datetime, timezone
 
 blueprint = Blueprint("scan",__name__,url_prefix="/settleplate")
 
