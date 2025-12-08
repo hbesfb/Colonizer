@@ -9,10 +9,6 @@
 		"password": "${DB_PASSWORD}",
 		"table": "SETTLEPLATE"
 	 },
-	 "logging": {
-		"level": "INFO",
-		"format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-	 },
 	 "regex": {
 		"user": [
 			"^user:(?P<user>.+)$"
@@ -43,9 +39,7 @@
 		"sameuser": true,
 		"testserver": false,
 		"positive_test_required": true,
-		"positive_test_location": "PositiveTest",
-		"enable_camera": false,
-		"debug": false
+		"positive_test_location": "PositiveTest"
 	 },
 	 "users": {
 		"admin": "admin"
