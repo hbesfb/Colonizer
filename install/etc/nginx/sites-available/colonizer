@@ -13,7 +13,8 @@ server {
       alias /app/Colonizer/webdaemon/static/;
    }
 
-   location ~* ^/(?:favicon|apple-touch-icon|android-chrome-|mstile-|safari-pinned-tab.svg|browserconfig.xml|manifest.json) {
+   # Serve favicon / manifests
+   location ~* ^/(?:favicon|apple-touch-icon|android-chrome-|mstile-|safari-pinned-tab.svg|browserconfig.xml|manifest.json)$ {
       root /app/Colonizer/webdaemon/static/favicon;
    }
 
