@@ -8,7 +8,8 @@ server {
    listen 80;
    server_name _;
 
-   location /static {
+   # Serve static files directly
+   location /static/ {
       alias /app/Colonizer/webdaemon/static/;
    }
 
