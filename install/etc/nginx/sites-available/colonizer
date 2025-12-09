@@ -12,12 +12,14 @@ server {
    location /static/ {
       alias /app/Colonizer/webdaemon/static/;
       access_log off;
+      expires max;
    }
 
    # Serve favicon / manifests
    location ~* ^/(?:favicon|apple-touch-icon|android-chrome-|mstile-|safari-pinned-tab.svg|browserconfig.xml|manifest.json)$ {
       root /app/Colonizer/webdaemon/static/favicon;
       access_log off;
+      expires max;
    }
 
    location / {
