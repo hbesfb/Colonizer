@@ -40,7 +40,7 @@ class _BarcodeParser():
 			if len(params['year']) == 2:
 				params['year'] = '20' + params['year']
 			params['expire'] = datetime(int(params['year']), int(params['month']), int(params['day']))
-		# return result
+		# return parsed result
 		return params
 
 Decoder = _BarcodeParser()
