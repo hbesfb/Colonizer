@@ -1,37 +1,81 @@
 from datetime import datetime
 from sqlalchemy.orm import deferred
 from flask_wtf import FlaskForm
-from wtforms import StringField, DateTimeField, DateField, FloatField, IntegerField, validators, HiddenField, FieldList
+from wtforms import StringField, DateTimeField, DateField, IntegerField, validators, HiddenField
 from webdaemon.database import db
 from webdaemon.version import __version__
 
-# using sqlacodegen db_uri
+from sqlalchemy import Text
+import os
 
+
+# ------------------------------------------------------
+# Configuration
+# ------------------------------------------------------
+config_file = os.environ.get("SETTLEPLATE_CONFIG", "default").lower()
+
+if config_file == "kubernetes":
+	IS_K8S = True
+else:
+	IS_K8S = False
+
+# ------------------------------------------------------
+# Database type aliases (legacy-compatible)
+# ------------------------------------------------------
+if IS_K8S:
+	# PostgreSQL-friendly types
+	Str32 = db.String(32)
+	Str64 = db.String(64)
+	Str128 = db.String(128)
+	ColoniesType = Text # Required for PostgreSQL to allow large text fields
+	ExportedType = db.Boolean
+	ExportedDefault = False
+else:
+	# Legacy / SQL Server-compatible types (exact same as old file)
+	Str32 = db.NVARCHAR(32)
+	Str64 = db.VARCHAR(64)
+	Str128 = db.NVARCHAR(128)
+	ColoniesType = db.VARCHAR("max")
+	ExportedType = db.BINARY(1)
+	ExportedDefault = b"\x00" # False in legacy code is a Python boolean, but the actual binary value of false for SQL Server is b'\x00'
+
+
+# ------------------------------------------------------
+# Models
+# ------------------------------------------------------
 class Settleplate(db.Model):
 	__tablename__ = 'SETTLEPLATE'
+
 	ID = db.Column(db.Integer, primary_key=True)
-	Username = db.Column(db.NVARCHAR(32))
-	ScanDate = db.Column(db.DateTime)
-	Barcode = db.Column(db.VARCHAR(128))
-	Lot_no = db.Column(db.VARCHAR(64))
+	Username = db.Column(Str32)
+	ScanDate = db.Column(db.DateTime, default=datetime.now)  # matches old file behavior
+	Barcode = db.Column(Str128)
+	Lot_no = db.Column(Str64)
 	Expires = db.Column(db.Date)
 	Counts = db.Column(db.Integer)
-	Version = db.Column(db.VARCHAR(32))
-	Location = db.Column(db.NVARCHAR(128))
-	Batch = db.Column(db.NVARCHAR(128))
+	Version = db.Column(Str128) # made larger to allow longer version strings
+	Location = db.Column(Str128)
+	Batch = db.Column(Str128)
 	Image = deferred(db.Column(db.LargeBinary)) # deferred so only loaded when accessed, not when queried
-	Colonies = db.Column(db.VARCHAR('max'))
-	Exported = db.Column(db.BINARY(1), default=False)
+	Colonies = db.Column(ColoniesType)
+	Exported = db.Column(ExportedType, default=ExportedDefault)
 
 	def __init__(self, **kwargs):
-			super(Settleplate, self,).__init__(**kwargs)
+		super(Settleplate, self).__init__(**kwargs)
+		# Ensure old file behavior exactly
+		if 'ScanDate' not in kwargs:
 			self.ScanDate = datetime.now()
-			self.Exported = False
-			self.Version = f"WebApp {__version__}"
+		if 'Exported' not in kwargs:
+			self.Exported = ExportedDefault #will be False in k8s and b'\x00' in legacy
+		self.Version = f'WebApp {__version__}'
 
 	def __repr__(self):
-		return '<Settleplate %r>' % self.ID
+		return f'<Settleplate {self.ID}>'
 
+
+# ------------------------------------------------------
+# Forms
+# ------------------------------------------------------
 class SettleplateForm(FlaskForm):
 	Username = StringField('Name', [validators.DataRequired("Please enter study name")])
 	ScanDate = DateTimeField('Date')
