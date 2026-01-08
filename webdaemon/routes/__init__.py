@@ -56,4 +56,5 @@ def pre_checks():
 	g.testserver = settings['general']['testserver']
 	g.timeout = settings['general']['timeout']
 	g.version = __version__
+	# Use cached ServiceMonitor status
 	g.status = servicemonitor.status
