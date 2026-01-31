@@ -17,7 +17,7 @@ app.logger.info(f'Starting Colonizer v{__version__}')
 
 # load settings
 config_file = os.environ.get('SETTLEPLATE_CONFIG','default')
-if not settings.init(config_file, app):
+if not settings.init(config_file, app.logger):
 	exit(1)
 
 # config
@@ -36,7 +36,7 @@ Session(app)
 
 # initialize database
 init_database(app)
-#create_database(app)
+create_database(app)
 
 # initialize camera
 app.logger.info('Connecting to RPI HW server...')
