@@ -38,7 +38,6 @@ function transition(new_state) {
          new_location=null;
          text_input = "";
          $("#barcode").val(text_input);
-         //$("#duplicate").slideUp(); dead code; element "duplicate" has never existed
          update_fields();
          update_table();
          set_glyph($("#batch_glyph"),GLYPH.ACTIVE);

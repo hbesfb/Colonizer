@@ -11,7 +11,7 @@ def register():
 		return render_template('register.html')
 
 	data = request.get_json()
-	
+
 	# data contains 'serial' because frontend always sends it, but it could be invalid.
 	parsed = Decoder.parse_input(data.get('serial'))
 	if parsed is None:
