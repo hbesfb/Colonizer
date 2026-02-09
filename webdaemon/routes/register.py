@@ -11,25 +11,43 @@ def register():
 		return render_template('register.html')
 
 	data = request.get_json()
-	data.update(Decoder.parse_input(data['serial'])) # parse serial and add result to data dictionary
-		
-	required = ['batch', 'serial', 'location']
-	if all([k in data for k in required]):
-		new_sp = Settleplate()
-		new_sp.Username = g.username
-		new_sp.Batch = data['batch']
-		new_sp.Barcode = data['serial']
-		new_sp.Location = data['location']
-		if 'lot' in data:
-			new_sp.Lot_no = data['lot']
-		if 'expire' in data:
-			new_sp.Expires = data['expire']
-		new_sp.Counts = -1
-		db.session.add(new_sp)
-		db.session.commit()
-		current_app.logger.info(f"User {g.username} registered settleplate : {new_sp.ID}")
+	
+	# data contains 'serial' because frontend always sends it, but it could be invalid.
+	parsed = Decoder.parse_input(data.get('serial'))
+	if parsed is None:
+		return jsonify({'committed': False, 'reason': 'invalid_barcode'})
 
-	return jsonify({'commited':True})
+	# Merge parsed data into original data dictionary
+	data.update(parsed)
+
+	# Check that presence of required fields
+	required = ['batch', 'serial', 'location']
+	if not all([k in data for k in required]):
+		missing = [k for k in required if k not in data]
+		current_app.logger.warning(f"Missing required fields: {missing}")
+		return jsonify({'committed': False, 'reason': 'missing_required_fields'}), 400
+
+	# Create DB entry
+	new_sp = Settleplate()
+	new_sp.Username = g.username
+	new_sp.Batch = data['batch']
+	new_sp.Barcode = data['serial']
+	new_sp.Location = data['location']
+	if 'lot' in data:
+		new_sp.Lot_no = data['lot']
+	if 'expire' in data:
+		new_sp.Expires = data['expire']
+	new_sp.Counts = -1
+	db.session.add(new_sp)
+	try:
+		db.session.commit()
+	except Exception as e:
+		db.session.rollback() 
+		current_app.logger.exception("Unexpected error during commit")
+		return jsonify({'committed': False, 'reason': 'unexpected_error'}), 500
+
+	current_app.logger.info(f"User {g.username} registered settleplate : {new_sp.ID}")
+	return jsonify({'committed':True})
 
 @blueprint.route('/batch_bydate', methods=(['POST']))
 def batch_bydate():
