@@ -8,7 +8,7 @@ blueprint = Blueprint("list",__name__,url_prefix="/settleplate")
 @blueprint.route('/list', methods=['GET', 'POST'])
 def settleplates():
 	# if get
-	if request.method == 'POST' and g.isAdmin:
+	if request.method == 'POST' and getattr(g, "isAdmin", False):
 		selected = request.form.getlist("selected")
 		for settleplate_id in selected:
 			settleplate = Settleplate.query.get(int(settleplate_id))

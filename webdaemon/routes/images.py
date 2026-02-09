@@ -95,7 +95,7 @@ def save_image():
 def capture():
 	modes = list(settings['camera'].keys())
 	# remove debug settings if not admin
-	if not g.isAdmin:
+	if not getattr(g, 'isAdmin', False):
 		modes = [m for m in modes if not m.startswith('_')]
 
 	# use this as default setting
