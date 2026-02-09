@@ -2,6 +2,7 @@ from webdaemon import app, __version__
 from flask import render_template, redirect, url_for, g
 from sqlalchemy.exc import SQLAlchemyError
 from settings import settings
+from webdaemon.status import servicemonitor
 
 from . import admin
 from . import edit
@@ -55,3 +56,4 @@ def pre_checks():
 	g.testserver = settings['general']['testserver']
 	g.timeout = settings['general']['timeout']
 	g.version = __version__
+	g.status = servicemonitor.status
