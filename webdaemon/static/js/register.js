@@ -320,7 +320,7 @@ function check_positive(data) {
 
       } else if(data.positive_state === "registered_uncounted") {
       // Warning for uncounted positive plate
-      $("#no-positive-message").text("Lot #" + data.lot + " has a positive test settleplate with no colony counts");
+      $("#no-positive-message").text("Lot #" + data.lot + " has a positive test settleplate with no registered colony counts");
       $("#no-positive").slideDown();
       $("#no-positive-link").hide(); // Hide button but keep warning visible
 
