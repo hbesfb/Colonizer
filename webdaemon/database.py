@@ -1,7 +1,7 @@
 import traceback
 import os
 import time
-from sqlalchemy.engine import URL
+from sqlalchemy import text
 from flask_sqlalchemy import SQLAlchemy
 from settings import settings
 
@@ -13,7 +13,6 @@ def init_database(app):
 	Supports:
 	  - MSSQL (via FreeTDS/ODBC + pyodbc)
 	  - PostgreSQL (via psycopg2)
-	  - SQLite (via sqlite3 driver)
 	Uses config from settings['db'].
 	"""
 	global db
@@ -77,7 +76,7 @@ def init_database(app):
 		for attempt in range(1, MAX_RETRIES + 1):
 			try:
 				with app.app_context():
-					db.session.execute(db.text("SELECT 1"))
+					db.session.execute(text("SELECT 1"))
 				app.logger.info("PostgreSQL database connection initialized successfully.")
 				app.logger.info(f"PostgreSQL connection successful on attempt {attempt}")
 				break
@@ -89,17 +88,6 @@ def init_database(app):
 		else:
 			app.logger.critical("PostgreSQL unavailable after retries — cannot start")
 			raise SystemExit(1)
-
-	# ------------------------------------------------------------
-	# SQLite
-	# ------------------------------------------------------------
-	# path entry should be available in db dictionary, else it will default to in-memory
-	elif db_type in ['sqlite']:
-		db_path = sql_info.get('path', ':memory:')  # default to in-memory
-		app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_path}"
-		app.logger.info(f"Using SQLite database at {db_path}")
-	else:
-		raise ValueError(f"Unsupported or undefined DB type: {db_type}. Must be 'mssql', 'postgres' or 'sqlite'.")
 
 	# Try initializing for all DB types except PostgreSQL (which has been handled above)
 	if db_type not in ['postgres', 'postgresql']:
