@@ -1,10 +1,11 @@
 import sys
+import os
 import logging
-import logging.handlers
 import zmq
 import time
 #from settings import settings
 from hwlayer.illumination import illumination
+from hwlayer.picamera import PiHQCamera2
 
 # setup logging
 log_root = logging.getLogger()
@@ -26,19 +27,31 @@ log.info("Starting server")
 camera = None
 socket = None
 
+def _resolve_bind_address():
+    """ Determine whether to bind IPC (local Pi) or TCP (Kubernetes remote access). """
+    transport = os.environ.get("HARDWARE_TRANSPORT", "ipc")
+    if transport == "ipc":
+        return "ipc:///tmp/settleplate_hw"
+    if transport == "tcp":
+        port = os.environ.get("HARDWARE_PORT", "3117")
+        return f"tcp://*:{port}"
+    raise ValueError(f"Unknown HARDWARE_TRANSPORT={transport}")
+
 def start_socket():
    global socket
-   port = 3117
    context = zmq.Context()
    log.info('Creating ZeroMQ socket')
+
+   # dynamic bind address
+   bind_addr = _resolve_bind_address()
+   log.info(f"Binding hardware server to address: {bind_addr}")
+
    try:
       socket = context.socket(zmq.REP)
-      socket.bind("ipc:///tmp/settleplate_hw")
-      #socket.bind(f"tcp://*:{port}")
+      socket.bind(bind_addr)
    except Exception as e:
       log.error('Could not create ZeroMQ socket')
 
-from hwlayer.picamera import PiHQCamera2
 def start_camera():
    global camera
    log.info('Setting up camera')
@@ -104,7 +117,7 @@ def main():
                image = camera.capture_array()
                illumination.clear()
                response = {
-                  'msg:'  : 'ok',
+                  'msg'  : 'ok',
                   'dtype' : str(image.dtype),
                   'shape' : image.shape
                }
