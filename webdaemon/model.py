@@ -31,13 +31,13 @@ if IS_K8S:
 	ExportedType = db.Boolean
 	ExportedDefault = False
 else:
-	# Legacy / SQL Server-compatible types (exact same as old file)
+	# Legacy / SQL Server-compatible types
 	Str32 = db.NVARCHAR(32)
 	Str64 = db.VARCHAR(64)
 	Str128 = db.NVARCHAR(128)
 	ColoniesType = db.VARCHAR("max")
 	ExportedType = db.BINARY(1)
-	ExportedDefault = b"\x00" # False in legacy code is a Python boolean, but the actual binary value of false for SQL Server is b'\x00'
+	ExportedDefault = b"\x00" # False in legacy - code is a Python boolean, but the actual binary value of false for SQL Server is b'\x00'
 
 
 # ------------------------------------------------------
@@ -53,7 +53,7 @@ class Settleplate(db.Model):
 	Lot_no = db.Column(Str64)
 	Expires = db.Column(db.Date)
 	Counts = db.Column(db.Integer)
-	Version = db.Column(Str128) # made larger to allow longer version strings
+	Version = db.Column(Str32)
 	Location = db.Column(Str128)
 	Batch = db.Column(Str128)
 	Image = deferred(db.Column(db.LargeBinary)) # deferred so only loaded when accessed, not when queried
