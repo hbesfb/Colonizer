@@ -1,5 +1,16 @@
+# -------------------------------
+# Setup routes & service checker
+# -------------------------------
+app.logger.info('Setting up routes...')
+
+# Import all routes to register blueprints
+import webdaemon.routes 
+app.logger.info('Routes setup complete.')
+app.logger.info(f'Colonizer v{__version__} initialization complete')
+
 #!/usr/bin/env python3
 import os
+import time
 import logging
 from redis import Redis, ConnectionError as RedisConnectionError
 from flask import Flask
@@ -8,6 +19,7 @@ from settings import settings, get_secret
 from webdaemon.status import servicemonitor
 from webdaemon.database import init_database
 from webdaemon.version import __version__
+import hwlayer.client as hwclient
 
 # create flask app
 app = Flask(__name__)
@@ -16,7 +28,9 @@ app.logger.info(f'Starting Colonizer v{__version__}')
 
 # load settings
 config_file = os.environ.get('SETTLEPLATE_CONFIG', 'default')
+is_k8s = (config_file == "kubernetes")
 app.logger.info(f"SETTLEPLATE_CONFIG used: {config_file}")
+
 if not settings.init(config_file, app):
 	raise SystemExit(1)
 
@@ -25,6 +39,9 @@ app.config['SECRET_KEY'] = get_secret()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
+# ------------------------------------------------------
+# Redis Connection
+# ------------------------------------------------------
 def create_redis_client(host, port, password=None):
 	"""Create and test a Redis client connection."""
 	client = Redis(
@@ -49,32 +66,41 @@ redis_password = os.environ.get('REDIS_PASSWORD', None)
 
 app.logger.info(f'Connecting to Redis at {redis_host}:{redis_port}')
 
-try:
-	redis_client = create_redis_client(redis_host, redis_port, redis_password)
-	app.logger.info('Redis connection successful')
+# Retry loop for Redis connection
+MAX_RETRIES = 10
+retry_delay = 1
 
-except (RedisConnectionError, Exception) as e:
-	app.logger.error(f'Failed to connect to Redis at {redis_host}:{redis_port}: {e}')
-	
-	# In non k8s fallback to localhost:6379 if we haven't tried it yet
-	if not (redis_host == 'localhost' and redis_port == 6379):
-		app.logger.critical('Redis unavailable in Kubernetes - cannot start')
+redis_client = None
+for attempt in range(1, MAX_RETRIES + 1):
+	try:
+		redis_client = create_redis_client(redis_host, redis_port, redis_password)
+		app.logger.info(f"Redis connection successful on attempt {attempt}")
+		break
+	except Exception as e:
+		app.logger.warning(f"Redis connection failed (attempt {attempt}/{MAX_RETRIES}): {e}")
+		time.sleep(retry_delay)
+
+# If still no Redis after retries → handle based on environment
+if redis_client is None:
+	if is_k8s: #Explicit fatal failure in Kubernetes 
+		app.logger.critical("Redis unavailable in Kubernetes after retries — cannot start")
 		raise SystemExit(1)
-	
-	# In non k8s fallback to localhost if not already used:
-	if redis_host != 'localhost' or redis_port != 6379:
-		app.logger.info('Attempting fallback to local Redis at localhost:6379...')
-		try:
-			redis_client = create_redis_client('localhost', 6379)
-			app.logger.info('Fallback Redis connection successful')
-		except (RedisConnectionError, Exception) as fallback_error:
-			app.logger.critical(f'All Redis connections failed: {fallback_error}')
-			raise SystemExit(1)
 	else:
-		app.logger.critical('Local Redis connection failed')
-		raise SystemExit(1)
+		# Local fallback
+		app.logger.warning("Retrying fallback to local Redis at localhost:6379")
+		try:
+			redis_client = create_redis_client("localhost", 6379)
+			app.logger.info("Fallback Redis connection successful")
+			redis_host, redis_port = "localhost", 6379 # update final host/port used
+		except Exception as e:
+			app.logger.critical(f"Local Redis connection failed: {e}")
+			raise SystemExit(1)
 
-# Session behavior
+app.logger.info(f"Final Redis connection in use: {redis_host}:{redis_port}")
+
+# ------------------------------------------------------
+# Session Configuration
+# ------------------------------------------------------
 app.logger.info('Setting redis session storage...')
 app.config['SESSION_KEY_PREFIX'] = 'colonizer:'  # namespace keys
 app.config['SESSION_USE_SIGNER'] = True          # sign cookies for tamper-proofing
@@ -105,66 +131,46 @@ Session(app)
 # Make Redis available to colonizer app
 app.redis = redis_client
 
+# ------------------------------------------------------
+# Database Initialization #
+# ------------------------------------------------------
 app.logger.info('initializing database...')
 init_database(app)
 
 # ServiceMonitor
 app.logger.info('Initializing ServiceMonitor for hardware...')
 servicemonitor.init(app)
+app.logger.info('ServiceMonitor started')
 
-# -------------------------------
-# Hardware/ZMQ client initialization
-# -------------------------------
+# ------------------------------------------------------
+# Hardware Initialization
+# ------------------------------------------------------
 app.logger.info('Initializing hardware client...')
-hw_client = None
 
-def get_zmq_address(config):
-	"""Determine ZMQ address based on configuration."""
-	if config == 'kubernetes':
-		# In k3s cluster - use service DNS name
-		cluster_addr = os.environ.get('CLUSTER_ZMQ_ADDR')
-		if not cluster_addr:
-			app.logger.error('CLUSTER_ZMQ_ADDR not set for kubernetes config')
-			return None
-		
-		if cluster_addr.startswith("tcp://"):
-			return cluster_addr
-		else:
-			# Assume it's just a hostname and add tcp:// plus the default port
-			return f"tcp://{cluster_addr}:3117"
-	else:
-		# Non-kubernetes config
-		local_addr = os.environ.get('LOCAL_ZMQ_ADDR', 'localhost')
-		if local_addr.startswith("tcp://"):
-			return local_addr
-		else:
-			return f"tcp://{local_addr}:3117"
-
-# Determine ZMQ address based on configuration
+# Log the address the client will use
 try:
-	import hwlayer.client as hwclient
-	app.logger.info(f'Hardware setup for config: {config_file}')
-	
-	zmq_addr = get_zmq_address(config_file)
-
-	if zmq_addr:
-		app.logger.info(f'Using ZMQ address: {zmq_addr}')
-		os.environ["CLUSTER_ZMQ_ADDR"] = zmq_addr
-		hw_client = hwclient.start_socket(zmq_addr)
-		app.logger.info("Hardware client initialized successfully")
-	else:
-		app.logger.warning("No ZMQ address configured for hardware")
-
-except ImportError as e:
-	app.logger.error(f'Failed to import hwlayer.client: {e}')
+	zmq_addr = hwclient._resolve_address()
+	app.logger.info(f"Using ZMQ address: {zmq_addr}")
 except Exception as e:
-	app.logger.error(f'Hardware client initialization failed: {e}')
-	
+	app.logger.error(f"Could not resolve ZMQ address: {e}")
+	zmq_addr = None
 
-# Make hardware client available to the app
-app.hw_client = hw_client
+# Initialize the hardware client 
+try:
+	hardware_initialized = hwclient.start_socket()
+	if hardware_initialized: 
+		app.logger.info("Hardware client initialized successfully") 
+	else: app.logger.warning("Hardware client failed to initialize") 
+except Exception as e: 
+	app.logger.error(f"Hardware client initialization failed: {e}") 
+	hardware_initialized = False 
 
-# Health and readiness endpoints
+# Expose initialization state to the app
+app.hardware_initialized = hardware_initialized
+
+# ------------------------------------------------------
+# Health and readiness endpoints 
+# ------------------------------------------------------
 @app.route('/health')
 def health_check():
 	"""Health check endpoint for Kubernetes liveness probe"""
@@ -183,9 +189,19 @@ def health_check():
 def readiness_check():
 	"""
 	Readiness check endpoint for Kubernetes readiness probe
-	
-	This checks if the application is ready to serve traffic by verifying
-	dependencies like Redis and hardware connections.
+	This checks if the application is ready to serve traffic 
+	"""
+	return "ok", 200
+
+@app.route('/deep_ready')
+def deep_readiness_check():
+	"""
+	Deep readiness check for debugging and diagnostics.
+	This performs the full dependency check:
+	- Redis
+	- Hardware (ZMQ)
+	- Colonizer version
+	- Config
 	"""
 	checks = []
 	all_ready = True
@@ -203,23 +219,20 @@ def readiness_check():
 			checks.append({'component': 'redis', 'status': 'unavailable'})
 			all_ready = False
 		
-		# Test hardware connection
-		if hw_client:
+		# Test hardware connection, readiness should not fail because of hardware
+		if app.hardware_initialized:
 			try:
-				import hwlayer.client as hwclient
-				hw_ready = hwclient.check_ready()
+				hw_ready = hwclient.is_ready()
 				if hw_ready:
 					checks.append({'component': 'hardware', 'status': 'ready'})
 				else:
-					checks.append({'component': 'hardware', 'status': 'not_ready'})
-					all_ready = False
+					checks.append({'component': 'hardware', 'status': 'not initialized'})
 			except Exception as e:
 				checks.append({'component': 'hardware', 'status': 'error', 'error': str(e)[:50]})
-				all_ready = False
 		else:
-			checks.append({'component': 'hardware', 'status': 'unavailable'})
-			# Not failing readiness if hardware is optional
-		
+			checks.append({'component': 'hardware', 'status': 'not initialized'})
+
+		# Final readiness status	
 		status = 'ready' if all_ready else 'not_ready'
 		return {
 			'status': status,
@@ -236,6 +249,27 @@ def readiness_check():
 			'checks': checks
 		}, 503
 
+@app.route('/status')
+def service_status():
+    """
+    Status endpoint used by the UI to show green/red icons.
+    Returns SQL, camera, and storage status from ServiceMonitor.
+    """
+    try:
+        status = servicemonitor.status
+
+        return {
+            "status": "ok",
+            "sql": status.get("sql"),
+            "camera": status.get("camera"), # <-- hardware readiness already included
+            "storage": status.get("storage"),
+            "last_update": servicemonitor._lastupdate.isoformat()
+        }, 200
+
+    except Exception as e:
+        app.logger.error(f"/status endpoint failed: {e}")
+        return {"status": "error", "error": str(e)}, 500
+	
 # -------------------------------
 # Setup routes & service checker
 # -------------------------------
