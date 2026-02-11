@@ -4,6 +4,7 @@ import multiprocessing
 config_file = os.environ.get('SETTLEPLATE_CONFIG', 'default')
 is_k8s = config_file == "kubernetes"
 path = os.getcwd()
+command = f'{path}/venv/bin/gunicorn' #TODO is this used for anything??
 pythonpath = path
 pidfile = f'{path}/run/colonizer.pid'
 
