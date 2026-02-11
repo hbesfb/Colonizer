@@ -1,7 +1,7 @@
 #!/bin/bash
 # script to start app in k8s, will be called in Dockerfile
 # 
-set -euo pipefail
+set -euo pipefail # exit if any error occurs
 
 # ---------------- Logging helpers ----------------
 GREEN='\033[0;32m'
