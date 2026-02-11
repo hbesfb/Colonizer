@@ -48,8 +48,3 @@ graceful_timeout = 30  # Time to wait for graceful worker shutdown
 
 # Set name of master process for clerity in system process lists and logs
 proc_name = 'colonizer'
-
-# Security limits
-limit_request_line = 4094
-limit_request_fields = 100
-limit_request_field_size = 8190
