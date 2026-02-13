@@ -27,6 +27,8 @@ app.logger.setLevel(logging.INFO)
 app.logger.info(f'Starting Colonizer v{__version__}')
 
 # load settings
+# The enviroment sets config file to "kubernetes" in k8s or "production" on the Pi
+# if is not set in the enviroment, it defaults to "default"
 config_file = os.environ.get('SETTLEPLATE_CONFIG', 'default')
 is_k8s = (config_file == "kubernetes")
 app.logger.info(f"SETTLEPLATE_CONFIG used: {config_file}")

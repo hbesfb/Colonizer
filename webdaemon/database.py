@@ -102,6 +102,8 @@ def init_database(app):
 	# ------------------------------------------------------------
 	# Kubernetes-specific connection tests to PostgreSQL
 	# ------------------------------------------------------------
+	# The enviroment sets config file to "kubernetes" in k8s or "production" on the Pi
+	# if is not set in the enviroment, it defaults to "default"
 	config_file = os.environ.get('SETTLEPLATE_CONFIG', 'default')
 	if config_file == "kubernetes" and db_type.lower() in ['postgres', 'postgresql']:
 		try:
