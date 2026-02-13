@@ -1,6 +1,5 @@
 #!/bin/bash
-# Colonizer watchdog repair script
-# Called automatically by watchdog when the system appears unhealthy.
+# Script for restarting potentially hung services/processes if watchdog is triggered
 
 LOGFILE="/var/log/colonizer-repair.log"
 
