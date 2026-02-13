@@ -1,6 +1,8 @@
 import os
 import multiprocessing
 
+# The enviroment sets config file to "kubernetes" in k8s or "production" on the Pi
+# if is not set in the enviroment, it defaults to "default"
 config_file = os.environ.get('SETTLEPLATE_CONFIG', 'default')
 is_k8s = config_file == "kubernetes"
 path = os.getcwd()
