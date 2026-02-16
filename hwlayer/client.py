@@ -16,7 +16,7 @@ def _resolve_address():
     """
     # Determine transport type from environment variable, default to "ipc"
     transport = os.environ.get("HARDWARE_TRANSPORT", "ipc")
-    if transport == "ipc": # running app locally, use IPC transport
+    if transport == "ipc": # running app locally, Pi runs both app + daemon; use IPC transport
         return "ipc:///tmp/settleplate_hw"
 
     if transport == "tcp": # running app in k8s, use TCP transport - HARDWARE_ADDR contains full address
