@@ -1,13 +1,3 @@
-# -------------------------------
-# Setup routes & service checker
-# -------------------------------
-app.logger.info('Setting up routes...')
-
-# Import all routes to register blueprints
-import webdaemon.routes 
-app.logger.info('Routes setup complete.')
-app.logger.info(f'Colonizer v{__version__} initialization complete')
-
 #!/usr/bin/env python3
 import os
 import time
