@@ -1,7 +1,7 @@
 {
    "db": {
       "db_type": "${DB_TYPE}",
-      "driver": "${DB_DRIVER}", 
+      "driver": "${DB_DRIVER}",
       "dbname": "${DB_NAME}",
       "host": "${DB_HOST}",
       "port": "${DB_PORT}",
@@ -39,7 +39,8 @@
       "sameuser": true,
       "testserver": false,
       "positive_test_required": true,
-      "positive_test_location": "PositiveTest"
+      "positive_test_location": "PositiveTest",
+      "positive_test_prefix": "POS"
    },
    "users": {
       "admin": "admin"
