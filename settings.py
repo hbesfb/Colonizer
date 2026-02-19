@@ -19,9 +19,9 @@ class Settings(FileSystemEventHandler):
 		self._reloader = None
 		self._reload_delay = 0.2
 
-	def init(self, filename: str, app = None):
-		if app is not None:
-			self._logger = app.logger
+	def init(self, filename: str, logger = None):
+		if logger is not None:
+			self._logger = logger
 		self.set_path(os.path.join('./config',f'{filename}.json'))
 		return self.load()
 
