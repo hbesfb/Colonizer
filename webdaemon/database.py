@@ -153,6 +153,16 @@ def create_database(app):
 	with app.app_context():
 		db.create_all()
 
+		# Verify table exists
+		result = db.session.execute(
+			text("SELECT to_regclass('public.settleplate');")
+			).scalar()
+		
+		if result:
+			app.logger.info("Database table SETTLEPLATE is present and ready.")
+		else:
+			app.logger.error("SETTLEPLATE table was NOT created!")
+
 def create_database_cmd():
 	from webdaemon.model import Settleplate
 	from sqlalchemy.dialects import mssql
