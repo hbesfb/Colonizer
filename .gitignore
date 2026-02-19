@@ -10,7 +10,6 @@ venv
 secret.key
 config/*
 !config/default.json
-!config/kubernetes.json
 sass
 webdaemon/static/fontawesome
 webdaemon/static/bootstrap
