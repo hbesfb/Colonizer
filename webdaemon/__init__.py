@@ -17,14 +17,9 @@ app.logger.setLevel(logging.INFO)
 app.logger.info(f'Starting Colonizer v{__version__}')
 
 # load settings
-# The enviroment sets config file to "kubernetes" in k8s or "production" on the Pi
-# if is not set in the enviroment, it defaults to "default"
-config_file = os.environ.get('SETTLEPLATE_CONFIG', 'default')
-is_k8s = (config_file == "kubernetes")
-app.logger.info(f"SETTLEPLATE_CONFIG used: {config_file}")
-
+config_file = os.environ.get('SETTLEPLATE_CONFIG','default')
 if not settings.init(config_file, app):
-	raise SystemExit(1)
+	exit(1)
 
 # config
 app.config['SECRET_KEY'] = get_secret()
@@ -128,143 +123,12 @@ app.redis = redis_client
 # ------------------------------------------------------
 app.logger.info('initializing database...')
 init_database(app)
+#create_database(app)
 
-# ServiceMonitor
-app.logger.info('Initializing ServiceMonitor for hardware...')
-servicemonitor.init(app)
-app.logger.info('ServiceMonitor started')
+# initialize camera
+app.logger.info('Connecting to RPI HW server...')
+hwclient.start_socket('localhost')
 
-# ------------------------------------------------------
-# Hardware Initialization
-# ------------------------------------------------------
-app.logger.info('Initializing hardware client...')
-
-# Log the address the client will use
-try:
-	zmq_addr = hwclient._resolve_address()
-	app.logger.info(f"Using ZMQ address: {zmq_addr}")
-except Exception as e:
-	app.logger.error(f"Could not resolve ZMQ address: {e}")
-	zmq_addr = None
-
-# Initialize the hardware client 
-try:
-	hardware_initialized = hwclient.start_socket()
-	if hardware_initialized: 
-		app.logger.info("Hardware client initialized successfully") 
-	else: app.logger.warning("Hardware client failed to initialize") 
-except Exception as e: 
-	app.logger.error(f"Hardware client initialization failed: {e}") 
-	hardware_initialized = False 
-
-# Expose initialization state to the app
-app.hardware_initialized = hardware_initialized
-
-# ------------------------------------------------------
-# Health and readiness endpoints 
-# ------------------------------------------------------
-@app.route('/health')
-def health_check():
-	"""Health check endpoint for Kubernetes liveness probe"""
-	try:
-		# Basic app health - check if Flask is responding
-		return {
-			'status': 'healthy', 
-			'Colonizer version': __version__,
-			'config': config_file
-		}, 200
-	except Exception as e:
-		app.logger.error(f'Health check failed: {e}')
-		return {'status': 'unhealthy', 'error': str(e)}, 500
-
-@app.route('/ready')
-def readiness_check():
-	"""
-	Readiness check endpoint for Kubernetes readiness probe
-	This checks if the application is ready to serve traffic 
-	"""
-	return "ok", 200
-
-@app.route('/deep_ready')
-def deep_readiness_check():
-	"""
-	Deep readiness check for debugging and diagnostics.
-	This performs the full dependency check:
-	- Redis
-	- Hardware (ZMQ)
-	- Colonizer version
-	- Config
-	"""
-	checks = []
-	all_ready = True
-	
-	try:
-		# Test Redis connection
-		if app.redis:
-			try:
-				app.redis.ping()
-				checks.append({'component': 'redis', 'status': 'ok'})
-			except Exception as e:
-				checks.append({'component': 'redis', 'status': 'failed', 'error': str(e)[:50]})
-				all_ready = False
-		else:
-			checks.append({'component': 'redis', 'status': 'unavailable'})
-			all_ready = False
-		
-		# Test hardware connection, readiness should not fail because of hardware
-		if app.hardware_initialized:
-			try:
-				hw_ready = hwclient.is_ready()
-				if hw_ready:
-					checks.append({'component': 'hardware', 'status': 'ready'})
-				else:
-					checks.append({'component': 'hardware', 'status': 'not initialized'})
-			except Exception as e:
-				checks.append({'component': 'hardware', 'status': 'error', 'error': str(e)[:50]})
-		else:
-			checks.append({'component': 'hardware', 'status': 'not initialized'})
-
-		# Final readiness status	
-		status = 'ready' if all_ready else 'not_ready'
-		return {
-			'status': status,
-			'Colonizer version': __version__,
-			'config': config_file,
-			'checks': checks
-		}, 200 if all_ready else 503
-		
-	except Exception as e:
-		app.logger.error(f'Readiness check failed: {e}')
-		return {
-			'status': 'not_ready',
-			'error': str(e),
-			'checks': checks
-		}, 503
-
-@app.route('/status')
-def service_status():
-    """
-    Status endpoint used by the UI to show green/red icons.
-    Returns SQL, camera, and storage status from ServiceMonitor.
-    """
-    try:
-        status = servicemonitor.status
-
-        return {
-            "status": "ok",
-            "sql": status.get("sql"),
-            "camera": status.get("camera"), # <-- hardware readiness already included
-            "storage": status.get("storage"),
-            "last_update": servicemonitor._lastupdate.isoformat()
-        }, 200
-
-    except Exception as e:
-        app.logger.error(f"/status endpoint failed: {e}")
-        return {"status": "error", "error": str(e)}, 500
-	
-# -------------------------------
-# Setup routes & service checker
-# -------------------------------
 app.logger.info('Setting up routes...')
 
 # Import all routes to register blueprints

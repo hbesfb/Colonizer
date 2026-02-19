@@ -121,6 +121,10 @@ chown colonizer:www-data -R $INSTALL_DIR
 find $INSTALL_DIR/webdaemon/static -type f -exec chmod 640 {} \;
 find $INSTALL_DIR/webdaemon/static -type d -exec chmod 750 {} \;
 
+# add user colonizer to board GPIOs and camera
+usermod -a -G gpio colonizer
+usermod -a -G video colonizer
+
 # # setup timeserver
 #vi /etc/systemd/timesyncd.conf
 #> NTP=<hostname>
