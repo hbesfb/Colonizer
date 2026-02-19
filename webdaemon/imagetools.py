@@ -159,7 +159,7 @@ def autocrop_ring(img_org, settings):
 	edges = np.transpose(np.nonzero(img_thrs_masked))
 	
 	# get circle parameters and scale to full size
-	(mask_x, mask_y), mask_r = cv2.minEnclosingCircle(edges)
+	(mask_y, mask_x), mask_r = cv2.minEnclosingCircle(edges)
 	mask_x = int(round(mask_x * factor,0))
 	mask_y = int(round(mask_y * factor,0))
 	mask_r -= np.sqrt(2) # shrink size of pixel diagonal
