@@ -1,22 +1,8 @@
 import sys
-import logging
-import logging.handlers
 import zmq
 import time
-#from settings import settings
+from hwlayer.logging import logging
 from hwlayer.illumination import illumination
-
-# setup logging
-log_root = logging.getLogger()
-log_formatter = logging.Formatter("%(asctime)s | %(name)12s | %(levelname)8s : %(message)s")
-#log_filehandler = logging.handlers.TimedRotatingFileHandler('log/ColonizerHW.log', when='midnight', backupCount=7)
-#log_filehandler.setFormatter(log_formatter)
-#log_filehandler.setLevel('DEBUG')
-log_stdhandler = logging.StreamHandler(sys.stdout)
-log_stdhandler.setFormatter(log_formatter)
-log_stdhandler.setLevel('DEBUG')
-#log_root.addHandler(log_filehandler)
-log_root.addHandler(log_stdhandler)
 
 log = logging.getLogger('Server')
 log.setLevel('DEBUG')
@@ -46,7 +32,7 @@ def start_camera():
 
 def start_illumination():
    illumination.clear()
-   illumination.set_status([255,0,0])
+   illumination.set_status(True)
    illumination.run()
 
 def main():
