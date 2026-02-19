@@ -47,18 +47,18 @@ class Settleplate(db.Model):
 	__tablename__ = 'SETTLEPLATE'
 
 	ID = db.Column(db.Integer, primary_key=True)
-	Username = db.Column(Str32)
-	ScanDate = db.Column(db.DateTime, default=datetime.now)  # matches old file behavior
-	Barcode = db.Column(Str128)
-	Lot_no = db.Column(Str64)
+	Username = db.Column(db.Unicode(32))
+	ScanDate = db.Column(db.DateTime)
+	Barcode = db.Column(db.String(128))
+	Lot_no = db.Column(db.String(64))
 	Expires = db.Column(db.Date)
 	Counts = db.Column(db.Integer)
-	Version = db.Column(Str32)
-	Location = db.Column(Str128)
-	Batch = db.Column(Str128)
+	Version = db.Column(db.String(32))
+	Location = db.Column(db.Unicode(128))
+	Batch = db.Column(db.String(128))
 	Image = deferred(db.Column(db.LargeBinary)) # deferred so only loaded when accessed, not when queried
-	Colonies = db.Column(ColoniesType)
-	Exported = db.Column(ExportedType, default=ExportedDefault)
+	Colonies = db.Column(db.String(8192))
+	Exported = db.Column(db.Boolean, default=False)
 
 	def __init__(self, **kwargs):
 		super(Settleplate, self).__init__(**kwargs)
