@@ -1,4 +1,5 @@
-import sys
+import os
+import logging
 import zmq
 import time
 from hwlayer.logging import logging
