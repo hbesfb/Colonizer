@@ -1,5 +1,6 @@
-.idea
+.env
 .vscode
+.idea
 __pycache__
 install/etc/.smbcredentials
 install/etc/fstab
