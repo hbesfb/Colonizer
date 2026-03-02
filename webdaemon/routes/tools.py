@@ -1,5 +1,4 @@
-from unittest import result
-from flask import Blueprint, request, jsonify, session, g
+from flask import Blueprint, current_app, request, jsonify, session, g
 from webdaemon.model import Settleplate
 from webdaemon.database import db
 from webdaemon.barcodeparser import Decoder
@@ -15,7 +14,6 @@ def parse_string():
 
 	if result is None:
 		return jsonify({})
-	# Store batch in session
 	if 'batch' in result:
 		session['batch'] = result['batch']
 	# check if the settleplate is registered in DB
@@ -23,13 +21,13 @@ def parse_string():
 		result['used'] = len(db.session.query(Settleplate.ScanDate).filter(Settleplate.Barcode.like(result['serial'])).all())
 	# check if there is a positive test for this lot of settleplates in the DB
 	if 'lot' in result and settings['general']['positive_test_required']:
-		batchname = settings['general']['positive_test_prefix'] + result['lot']
+		batchname = settings['general']['positive_test_prefix']+result['lot']
 		result['no_positive'] = db.session.query(Settleplate.ScanDate).filter(
+			#Settleplate.Lot_no == result['lot'],
 			Settleplate.Batch.like(batchname),
-			Settleplate.Counts > 0
+			Settleplate.Counts > 0,
 		).first() is None
 		if result['no_positive']:
-			# First positive-test plate
 			result['no_positive_batch'] = batchname
 			result['no_positive_location'] = settings['general']['positive_test_location']
 
