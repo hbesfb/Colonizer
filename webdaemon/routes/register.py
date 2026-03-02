@@ -22,12 +22,21 @@ def register():
 
 	# Check that presence of required fields
 	required = ['batch', 'serial', 'location']
-	if not all([k in data for k in required]):
-		missing = [k for k in required if k not in data]
+	missing = [k for k in required if k not in data]
+	if missing:
 		current_app.logger.warning(f"Missing required fields: {missing}")
-		return jsonify({'committed': False, 'reason': 'missing_required_fields'}), 400
+		return jsonify({'committed': False, 'reason': 'missing_required_fields'})
 
-	# Create DB entry
+	# Duplicate registration check: # Only check for an existing registration row (Counts = -1)
+	existing = (
+		db.session.query(Settleplate)
+		.filter_by(Barcode=data['serial'], Counts=-1)
+		.first()
+	)
+	if existing:
+		return jsonify({'committed': False, 'reason': 'duplicate_barcode'})
+
+	# Create new registration row in DB
 	new_sp = Settleplate()
 	new_sp.Username = g.username
 	new_sp.Batch = data['batch']
@@ -44,10 +53,10 @@ def register():
 	except Exception as e:
 		db.session.rollback() 
 		current_app.logger.exception("Unexpected error during commit")
-		return jsonify({'committed': False, 'reason': 'unexpected_error'}), 500
+		return jsonify({'committed': False, 'reason': 'unexpected_error'})
 
 	current_app.logger.info(f"User {g.username} registered settleplate : {new_sp.ID}")
-	return jsonify({'committed':True})
+	return jsonify({'committed':True}) # this always returns HTTP 200
 
 @blueprint.route('/batch_bydate', methods=(['POST']))
 def batch_bydate():
