@@ -8,8 +8,7 @@ blueprint = Blueprint("list",__name__,url_prefix="/settleplate")
 # Route to list settleplates (GET) with optional filtering and deletion (POST) for admins
 @blueprint.route('/list', methods=['GET', 'POST'])
 def settleplates():
-	# if get
-	if request.method == 'POST' and getattr(g, "isAdmin", False):
+	if request.method == 'POST' and getattr(g, "isAdmin", False): # default isAdmin to False if not set instead of raising AttributeError
 		# delete selected settleplates
 		selected = request.form.getlist("selected")
 		for settleplate_id in selected:
