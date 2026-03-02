@@ -14,10 +14,7 @@ def login_check():
 	g.username = session.get('user')
 	g.isAdmin = g.username in settings['users']
 
-	# Allow requests for static files and status/health/ready endpoints to skip login check
-	if request.path.startswith("/static/"):
-		return
-	if request.path.startswith(("/health", "/ready/", "/status")):
+	if request.path.startswith(('/status')):
 		return
 
 	if g.username is None and request.endpoint not in ['users.login', 'users.logout']:
