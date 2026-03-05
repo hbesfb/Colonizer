@@ -65,7 +65,7 @@ def get_image(image_id):
 		return redirect("/static/settleplate.svg")
 	else:
 		img = make_response(sp.Image)
-		img.headers.set('Content-Type', 'image/jpeg')
+		img.headers.set('Content-Type', 'image/jpg')
 		img.headers.set('Content-Disposition', 'attachment', filename=f"{image_id}.jpg")
 		return img
 
