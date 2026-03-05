@@ -14,60 +14,89 @@ def scan():
 		return render_template('scan.html', settleplate=sp, form=form, autocount=settings['general']['autocount'])
 
 	# else if POST
-	data = request.get_json()
-	if "barcode" in data:
-		# query for registration
-		query = db.session.query(Settleplate.Location, Settleplate.Batch, Settleplate.Lot_no, Settleplate.ScanDate, Settleplate.Expires, Settleplate.Lot_no)
-		filters = query.filter(Settleplate.Barcode.like(data['barcode']), Settleplate.Counts == -1)
-		plateinfo = filters.one()
-		if len(plateinfo):
-			sp = Settleplate()
-			sp.Username = g.username
-			sp.ScanDate = datetime.fromisoformat(session['image_timestamp'])
-			sp.Barcode = data['barcode']
-			sp.Lot_no = plateinfo.Lot_no
-			sp.Expires = plateinfo.Expires
-			sp.Counts = data['counts']
-			sp.Location = plateinfo.Location
-			sp.Batch = plateinfo.Batch
-			sp.Image = session['image_jpeg']
-			sp.Colonies = data['colonies'].encode('utf8')
-			#for key, value in sp.__dict__.items():
-			#	current_app.logger.debug(f'SP[{key}]: {value} ({type(value)})')
-			try:
-				db.session.add(sp)
-				db.session.commit()
-			except Exception as e:
-				current_app.logger.error('Failed to write to DB: %s'%str(e))
-				return jsonify({'committed':False})
-			else:
-				dt = round((sp.ScanDate - plateinfo.ScanDate).total_seconds() / 3600) # convert to hours
-				current_app.logger.info(f'User {g.username} scanned {sp.ID} to DB with {sp.Counts} counts')
-				return jsonify({'committed':True, 'Counts': sp.Counts, 'ID': sp.ID, 'dT': dt })
-		else:
-			return jsonify({'committed':False})
+	data = request.get_json() or {}
+
+	# Validate barcode
+	barcode = data.get("barcode")
+	if not barcode:
+		return jsonify({'committed': False, 'error': 'missing barcode'})
+
+	# Validate image capture
+	ts = session.get('image_timestamp')
+	img = session.get('image_jpeg')
+
+	if not ts or not img:
+		current_app.logger.error(f"Invalid image capture: ts={ts!r}, img={type(img)}")
+		return jsonify({'committed': False, 'error': 'No valid image captured'})
+
+	# query for registration (use query that works for both MSSQL and PostgreSQL)
+	# returns exactly one row or None if 0 rows match (and raises an error if multiple rows are found)
+	plateinfo = (
+		Settleplate.query
+		.filter(Settleplate.Barcode == barcode,
+				Settleplate.Counts == -1)
+		.one_or_none()
+	)
+
+	if plateinfo is None:
+		return jsonify({'committed': False, 'error': 'barcode not registered'})
+
+	sp = Settleplate()
+	sp.Username = g.username
+	sp.ScanDate = datetime.fromisoformat(ts)
+	sp.Barcode = barcode
+	sp.Lot_no = plateinfo.Lot_no
+	sp.Expires = plateinfo.Expires
+	sp.Counts = data.get('counts') # try with: sp.Counts = int(data.get('counts', 0))
+	sp.Location = plateinfo.Location
+	sp.Batch = plateinfo.Batch
+	sp.Image = img
+	sp.Colonies =  data.get('colonies')  # try with sp.Colonies = data.get('colonies', '')
+	
+	try:
+		db.session.add(sp)
+		db.session.commit()
+	except Exception as e:
+		current_app.logger.error('Failed to write to DB: %s'%str(e))
+		return jsonify({'committed':False})
+		
+	dt = None
+	if plateinfo.ScanDate:
+		dt = round((sp.ScanDate - plateinfo.ScanDate).total_seconds() / 3600) # convert to hours
+		current_app.logger.info(f'User {g.username} scanned {sp.ID} to DB with {sp.Counts} counts')
+	
+	return jsonify({'committed':True, 'Counts': sp.Counts, 'ID': sp.ID, 'dT': dt })
 
 
 @blueprint.route('/info', methods=(['POST']))
 def plate_info():
-	data = request.get_json()
-	barcode = data['barcode']
-	if not len(barcode):
+	data = request.get_json() or {}
+	barcode = data.get('barcode') # does not throw keyError where 'barcode' is missing or None
+	if not barcode: # safer when 'barcode' is missing or None or empty string
 		return jsonify({'error':'missing serial'})
 	
 	# query for registration
-	query = db.session.query(Settleplate.ScanDate, Settleplate.Location, Settleplate.Batch, Settleplate.Username)
-	filters = query.filter(Settleplate.Barcode.like(barcode), Settleplate.Counts == -1)
-	try:
-		plateinfo = filters.one()
-	except:
-		return jsonify({'error':'serial not in db'})
+	plateinfo = (
+		Settleplate.query
+		.filter(Settleplate.Barcode == barcode,
+				Settleplate.Counts == -1)
+		.one_or_none()
+	)
+
+	if plateinfo is None:
+		return jsonify({'error': 'serial not in db'})
 
 	# query for scans
-	query = db.session.query(Settleplate.ID, Settleplate.ScanDate, Settleplate.Counts)
-	filters = query.filter(Settleplate.Barcode.like(barcode), Settleplate.Counts >= 0)
-	# return sorted and max 10
-	scans = filters.order_by(Settleplate.ScanDate.asc()).limit(10).all()
+	# .like() behaves differently across MSSQL and PostgreSQL, so we use a query that works for both
+	scans = (
+		Settleplate.query
+		.filter(Settleplate.Barcode == barcode,
+				Settleplate.Counts >= 0)
+		.order_by(Settleplate.ScanDate.asc())
+		.limit(10)
+		.all()
+	)
+
 	timepoints = []
 	for scan in scans:
 		dt = round((scan.ScanDate - plateinfo.ScanDate).total_seconds() / 3600) # convert to hours
@@ -78,8 +107,13 @@ def plate_info():
 		})
 
 	# return plate info and scan times
-	response = plateinfo._asdict()
-	# check if user scanning plate is same as user registering, and check if settings allow this
-	response['SameUser'] = (g.username == plateinfo.Username) and settings['general']['sameuser']
-	response['Timepoints'] = timepoints
+	response = {
+		'ScanDate': plateinfo.ScanDate.isoformat() if plateinfo.ScanDate else None,
+		'Location': plateinfo.Location,
+		'Batch': plateinfo.Batch,
+		'Username': plateinfo.Username,
+		# check if user scanning plate is same as user registering, and check if settings allow this
+		'SameUser': (g.username == plateinfo.Username) and settings['general']['sameuser'],
+		'Timepoints': timepoints
+	}
 	return jsonify(response)
