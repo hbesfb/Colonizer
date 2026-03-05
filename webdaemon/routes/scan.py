@@ -14,7 +14,7 @@ def scan():
 		return render_template('scan.html', settleplate=sp, form=form, autocount=settings['general']['autocount'])
 
 	# else if POST
-	data = request.get_json() or {}
+	data = request.get_json() or {} # ensure that data is always a dictionary, even if no JSON is sent.
 
 	# Validate barcode
 	barcode = data.get("barcode")
