@@ -1,117 +1,79 @@
-import threading
-import os
-from datetime import datetime
+from threading import Timer
 from webdaemon.database import db
 from sqlalchemy import text
 from settings import settings
+from datetime import datetime, timedelta
+import os
 import hwlayer.client
-import logging
 
-log = logging.getLogger("ServiceMonitor")
+# ------------------------------------------------------------
+# Local (Pi) monitor — original Timer-based implementation
+# ------------------------------------------------------------
 
+class LocalServiceMonitor(Timer):
+    sleeptimer = 600
+    interval = 30
 
-class ServiceMonitor(threading.Thread):
-    """
-    Background thread that periodically checks:
-    - SQL
-    - Camera (Pi via ZMQ)
-    - Storage (local mount or PVC)
-    Handles offline Pi gracefully.
-    """
-
-    def __init__(self, interval: int = 30, sleeptimer: int = 600):
-        super().__init__(daemon=True)
-        self.interval = interval
-        self.sleeptimer = sleeptimer
+    def __init__(self,):
         self._app = None
         self._status = {
-            "sql": False,
-            "camera": False,
-            "storage": False,
+            'sql': False,
+            'camera': False,
+            'storage': False
         }
         self._lastaccess = datetime.now()
-        self._lastupdate = datetime.now()
-        self._lock = threading.Lock()
-        self._stop_event = threading.Event()
+        super().__init__(self.interval, self.check_services)
+        self.daemon = True
 
     @property
     def status(self):
-        """Return last cached status without blocking."""
         self._lastaccess = datetime.now()
-        with self._lock:
-            return self._status.copy()
+        if ((self._lastaccess - self._lastupdate) > timedelta(seconds=self.interval)):
+            self.check_services()
+        return self._status.copy()
 
     def init(self, app):
-        """Start monitoring thread."""
         self._app = app
-        log.info("ServiceMonitor: initializing and performing first check")
         self.check_services()
         self.start()
 
     def run(self):
-        """Background loop to check services."""
-        while not self._stop_event.wait(self.interval):
-            try:
-                self.check_services()
-            except Exception as e:
-                log.error(f"ServiceMonitor: check_services error: {e}")
+        while not self.finished.wait(self.interval):
+            self.function(*self.args, **self.kwargs)
 
     def check_services(self):
-        now = datetime.now()
-
-        # Skip if inactive eg. the UI  is not being accessed, no API calls to /status, the system is idle.
-        if (now - self._lastaccess).total_seconds() > self.sleeptimer:
-            log.debug("ServiceMonitor: skipping checks (inactive)")
+        if (datetime.now() - self._lastaccess) > timedelta(seconds=self.sleeptimer):
             return
-
-        # --- SQL ---
-        sql_status = False
+        # check sql status
         try:
             with self._app.app_context():
-                db.session.execute(text("SELECT 1"))
-            sql_status = True
-        except Exception as e:
-            log.warning(f"ServiceMonitor: SQL check failed: {e}")
+                db.session.execute(text('SELECT 1'))
+            self._status['sql'] = True
+        except:
+            self._status['sql'] = False
 
-        # --- Camera (Pi via ZMQ) ---
-        camera_status = False
-        try:
-            camera_status = hwlayer.client.is_ready()
-        except Exception as e:
-            log.debug(f"ServiceMonitor: Camera/Pi check failed (may be offline): {e}")
+        # check camera status
+        self._status['camera'] = hwlayer.client.is_ready()
 
-        # --- Storage check (PVC or local mount) ---
-        storage_status = False
-        try:
-            mountpoint = settings['general'].get('mountpoint', '/mnt/data')
-            savepath = settings['general'].get('savepath', '/mnt/data/Data/Colonizer/')
+        # check storage status
+        self._status['storage'] = os.path.ismount(settings['general']['mountpoint'])
 
-            if os.path.ismount(mountpoint) or os.path.ismount(os.path.dirname(savepath)):
-                storage_status = True
-            elif os.path.exists(savepath) and os.access(savepath, os.W_OK):
-                storage_status = True
-        except Exception as e:
-            log.warning(f"ServiceMonitor: Image storage check failed: {e}")
+        # timestamp update
+        self._lastupdate = datetime.now()
 
-        # --- Update status safely, only one thread at a time can read or write _status ---
-        with self._lock:
-            old = self._status.copy()
-            new = {
-                "sql": sql_status,
-                "camera": camera_status,
-                "storage": storage_status,
-            }
+# ------------------------------------------------------------
+# K8s monitor — imported only when needed
+# # ------------------------------------------------------------
+from .monitor_k8s import K8sServiceMonitor
 
-            if new != old: # log showing “old value → new value”
-                log.info(
-                    f"ServiceMonitor: status changed | "
-                    f"SQL: {old['sql']}→{new['sql']}, "
-                    f"Camera: {old['camera']}→{new['camera']}, "
-                    f"Storage: {old['storage']}→{new['storage']}"
-                )
+# ------------------------------------------------------------
+# Factory: choose monitor based on environment
+# ------------------------------------------------------------
+def running_in_k8s():
+    return (
+        os.environ.get("SETTLEPLATE_CONFIG") == "kubernetes"
+        or "KUBERNETES_SERVICE_HOST" in os.environ  # var exists in k8s pods by default
+    )
 
-            self._status = new
-            self._lastupdate = now
 
-# Create one servicemonitor instance that is shared in entire application
-servicemonitor = ServiceMonitor()
+servicemonitor = K8sServiceMonitor() if running_in_k8s() else LocalServiceMonitor()
