@@ -25,7 +25,7 @@ class Settleplate(db.Model):
 	Exported = db.Column(db.Boolean, default=False)
 
 	def __init__(self, **kwargs):
-			super(Settleplate, self,).__init__(**kwargs)
+			super(Settleplate, self).__init__(**kwargs)
 			self.ScanDate = datetime.now()
 			self.Exported = False
 			self.Version = f"WebApp {__version__}"
