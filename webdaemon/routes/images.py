@@ -58,7 +58,7 @@ def live():
  
 @blueprint.route('/<int:image_id>', methods=['GET'])
 def get_image(image_id):
-	sp = Settleplate.query.get(int(image_id))
+	sp = Settleplate.query.get(int(image_id)) #TODO deprecated in SQLAlchemy 2.x, use: sp = db.session.get(Settleplate, image_id)
 	if sp is None:
 		return redirect("/static/settleplate.svg")
 	elif sp.Image is None:

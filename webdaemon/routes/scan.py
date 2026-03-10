@@ -27,7 +27,7 @@ def scan():
 
 	if not ts or not img:
 		current_app.logger.error(f"Invalid image capture: ts={ts!r}, img={type(img)}")
-		return jsonify({'committed': False, 'error': 'No valid image captured'})
+		return jsonify({'committed': False, 'error': 'Image not saved. None was was captured - Check if camera is available'})
 
 	# query for registration (use query that works for both MSSQL and PostgreSQL)
 	# returns exactly one row or None if 0 rows match (and raises an error if multiple rows are found)
@@ -47,26 +47,29 @@ def scan():
 	sp.Barcode = barcode
 	sp.Lot_no = plateinfo.Lot_no
 	sp.Expires = plateinfo.Expires
-	sp.Counts = data.get('counts') # try with: sp.Counts = int(data.get('counts', 0))
+	counts = data.get('counts')
+	if counts is None:
+		return jsonify({'committed': False, 'error': 'missing counts'})
+	sp.Counts = int(counts) # ensure that counts is an integer
 	sp.Location = plateinfo.Location
 	sp.Batch = plateinfo.Batch
 	sp.Image = img
-	sp.Colonies =  data.get('colonies')  # try with sp.Colonies = data.get('colonies', '')
-	
+	# colonies should be string not bytes as was with old code ( data['colonies'].encode('utf8')  # produces bytes)
+	sp.Colonies =  data.get('colonies')
 	try:
 		db.session.add(sp)
 		db.session.commit()
 	except Exception as e:
+		db.session.rollback()
 		current_app.logger.error('Failed to write to DB: %s'%str(e))
-		return jsonify({'committed':False})
-		
+		return jsonify({'committed': False, 'error': f'Database error: {str(e)}'})
+
 	dt = None
 	if plateinfo.ScanDate:
 		dt = round((sp.ScanDate - plateinfo.ScanDate).total_seconds() / 3600) # convert to hours
 		current_app.logger.info(f'User {g.username} scanned {sp.ID} to DB with {sp.Counts} counts')
 	
 	return jsonify({'committed':True, 'Counts': sp.Counts, 'ID': sp.ID, 'dT': dt })
-
 
 @blueprint.route('/info', methods=(['POST']))
 def plate_info():
