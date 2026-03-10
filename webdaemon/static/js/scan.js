@@ -66,6 +66,7 @@ $(document).ready(function() {
                // restore the UI to a usable state so user can recapture or rescan
                $("#refresh").prop("disabled", false);  // allow image recapture
                $("#Counts").prop("readonly", false); // allow counts to be changed again
+               $("#Counts").val("") // reset counts
                $("#barcode").prop("readonly", false);  // allow serial rescan
                $("#barcode").focus();
                $("#commit").prop("disabled", false); // allow commit/save retry
