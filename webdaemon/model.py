@@ -1,13 +1,12 @@
 from datetime import datetime
 from sqlalchemy.orm import deferred
 from flask_wtf import FlaskForm
-from wtforms import StringField, DateTimeField, DateField, IntegerField, validators, HiddenField
+from wtforms import StringField, DateTimeField, DateField, FloatField, IntegerField, validators, HiddenField, FieldList
 from webdaemon.database import db
 from webdaemon.version import __version__
 
-# ------------------------------------------------------
-# Model — Used by create_database() in database.py to create the database table 
-# ------------------------------------------------------
+# using sqlacodegen db_uri
+
 class Settleplate(db.Model):
 	__tablename__ = 'SETTLEPLATE'
 	ID = db.Column(db.Integer, primary_key=True)
