@@ -10,6 +10,7 @@ blueprint = Blueprint("tools",__name__)
 @blueprint.route('/parse', methods=['POST'])
 def parse_string():
 	data = request.get_json()
+	# use try-except to catch any parsing errors instead of raising 500 error
 	try:
 		result = Decoder.parse_input(data)
 	except Exception:
@@ -18,16 +19,17 @@ def parse_string():
 	if result is None: # Input did not match any regex, will be treated as invalid barcode by JS frontend
 		return jsonify({})
 
+	# Always set batch from result if present
 	if 'batch' in result:
 		session['batch'] = result['batch']
-	
-	# Add number of times this serial has been used ie check if the settleplate is registered in DB
+
+	# Add number of times this serial has been used ie check if the settleplate is already registered in DB
 	if 'serial' in result:
 		result['used'] = len(db.session.query(Settleplate.ScanDate).filter(Settleplate.Barcode.like(result['serial'])).all())
 
 	# check if there is a positive test for this lot of settleplates in the DB
 	# If the setting is missing 'positive_test_required', we explicitly treat it as disabled (False).
-	positive_required = settings['general'].get('positive_test_required', False)
+	positive_required = settings['general'].get('positive_test_required', False) # Use .get to avoid KeyError if the setting is missing
 
 	if 'lot' in result and positive_required:
 		try:
@@ -42,7 +44,7 @@ def parse_string():
 				'config_error': True,
 				'message': f'Missing configuration: {e}'
 			})
-	
+
 		batchname = batch_prefix+result['lot']
 
 		# determine positive test state by location not by counts
