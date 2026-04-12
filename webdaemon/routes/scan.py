@@ -22,18 +22,18 @@ def scan():
 		return jsonify({'committed': False, 'error': 'missing barcode'})
 
 	# Validate image capture
-	ts = session.get('image_timestamp')
+	image_timestamp = session.get('image_timestamp')
 	img = session.get('image_jpeg')
 
-	if not ts or not img:
-		current_app.logger.error(f"Invalid image capture: ts={ts!r}, img={type(img)}")
+	if not image_timestamp or not img:
+		current_app.logger.error(f"Invalid image capture: ts={repr(image_timestamp)}, img={type(img)}")
 		return jsonify({'committed': False, 'error': 'Image not saved. None was was captured - Check if camera is available'})
 
 	# query for registration (use query that works for both MSSQL and PostgreSQL)
 	# returns exactly one row or None if 0 rows match (and raises an error if multiple rows are found)
 	plateinfo = (
 		Settleplate.query
-		.filter(Settleplate.Barcode == barcode,
+		.filter(Settleplate.Barcode == barcode,	
 				Settleplate.Counts == -1)
 		.one_or_none()
 	)
@@ -43,7 +43,7 @@ def scan():
 
 	sp = Settleplate()
 	sp.Username = g.username
-	sp.ScanDate = datetime.fromisoformat(ts)
+	sp.ScanDate = datetime.fromisoformat(image_timestamp)
 	sp.Barcode = barcode
 	sp.Lot_no = plateinfo.Lot_no
 	sp.Expires = plateinfo.Expires
