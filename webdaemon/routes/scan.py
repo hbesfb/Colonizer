@@ -33,7 +33,7 @@ def scan():
 	# returns exactly one row or None if 0 rows match (and raises an error if multiple rows are found)
 	plateinfo = (
 		Settleplate.query
-		.filter(Settleplate.Barcode == barcode,	
+		.filter(Settleplate.Barcode == barcode,
 				Settleplate.Counts == -1)
 		.one_or_none()
 	)
