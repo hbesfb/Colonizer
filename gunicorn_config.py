@@ -23,7 +23,7 @@ if is_k8s:
 
 	port = os.getenv("PORT", "8000")
 	bind = f"0.0.0.0:{port}"
-	workers = int(os.environ.get('GUNICORN_WORKERS', multiprocessing.cpu_count() * 2 + 1))
+	workers = int(os.environ.get('GUNICORN_WORKERS', '1'))
 else:
 	user = 'colonizer'
 	bind = f'unix:{path}/run/colonizer.sock'

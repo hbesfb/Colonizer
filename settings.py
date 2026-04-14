@@ -125,7 +125,7 @@ def user_validator(username, password):
 		return True, ''
 	else:
 		return False, 'Invalid username'
-	
+
 def get_secret():
 	"""
 	Retrieve or generate a stable secret key based on environment.
