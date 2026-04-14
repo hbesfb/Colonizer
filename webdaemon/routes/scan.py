@@ -26,7 +26,7 @@ def scan():
 	img = session.get('image_jpeg')
 
 	if not image_timestamp or not img:
-		current_app.logger.error(f"Invalid image capture: ts={repr(image_timestamp)}, img={type(img)}")
+		current_app.logger.error(f"Invalid image capture: image_timestamp={repr(image_timestamp)}, img={type(img)}")
 		return jsonify({'committed': False, 'error': 'Image not saved. None was was captured - Check if camera is available'})
 
 	# query for registration (use query that works for both MSSQL and PostgreSQL)
