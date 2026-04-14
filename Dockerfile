@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	python3-pip=23.0.1+dfsg-1 \
 	build-essential=12.9 \
 	gcc=4:12.2.0-3 \
-	libpq-dev=15.15-0+deb12u1 \
+	libpq-dev=15.16-0+deb12u1 \
 	curl=7.88.1-10+deb12u14 \
 	wget=1.21.3-1+deb12u1 \
 	unzip=6.0-28 \
@@ -95,10 +95,10 @@ WORKDIR $APP_HOME
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	python3=3.11.2-1+b1 \
 	python3-venv=3.11.2-1+b1 \
-	libpq5=15.15-0+deb12u1 \
+	libpq5=15.16-0+deb12u1 \
 	redis-tools=5:7.0.15-1~deb12u6 \
 	postgresql-client=15+248+deb12u1 \
-	nginx=1.22.1-9+deb12u3 \
+	nginx=1.22.1-9+deb12u4 \
 	fish=3.6.0-3.1+deb12u1 \
 	sudo=1.9.13p3-1+deb12u2 \
 	libgl1=1.6.0-1 \
