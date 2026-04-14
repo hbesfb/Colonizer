@@ -20,14 +20,14 @@ def register():
 	# Merge parsed data into original data dictionary
 	data.update(parsed)
 
-	# Check that presence of required fields
+	# Check the presence of required fields
 	required = ['batch', 'serial', 'location']
 	missing = [k for k in required if k not in data]
 	if missing:
 		current_app.logger.warning(f"Missing required fields: {missing}")
 		return jsonify({'committed': False, 'reason': 'missing_required_fields'})
 
-	# Duplicate registration check: # Only check for an existing registration row (Counts = -1)
+	# Duplicate registration check: Check for an existing registration row (Counts = -1)
 	existing = (
 		db.session.query(Settleplate)
 		.filter_by(Barcode=data['serial'], Counts=-1)
