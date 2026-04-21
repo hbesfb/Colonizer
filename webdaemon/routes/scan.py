@@ -31,12 +31,7 @@ def scan():
 
 	# query for registration (use query that works for both MSSQL and PostgreSQL)
 	# returns exactly one row or None if 0 rows match (and raises an error if multiple rows are found)
-	plateinfo = (
-		Settleplate.query
-		.filter(Settleplate.Barcode == barcode,
-				Settleplate.Counts == -1)
-		.one_or_none()
-	)
+	plateinfo = Settleplate.get_registration(barcode)
 
 	if plateinfo is None:
 		return jsonify({'committed': False, 'error': 'barcode not registered'})
@@ -79,12 +74,7 @@ def plate_info():
 		return jsonify({'error':'missing serial'})
 	
 	# query for registration
-	plateinfo = (
-		Settleplate.query
-		.filter(Settleplate.Barcode == barcode,
-				Settleplate.Counts == -1)
-		.one_or_none()
-	)
+	plateinfo = Settleplate.get_registration(barcode)
 
 	if plateinfo is None:
 		return jsonify({'error': 'serial not in db'})
