@@ -9,65 +9,92 @@ blueprint = Blueprint("tools",__name__)
 
 @blueprint.route('/parse', methods=['POST'])
 def parse_string():
-	data = request.get_json()
-	# use try-except to catch any parsing errors instead of raising 500 error
+	data = request.get_json(silent=True)
+	if data is None:
+		current_app.logger.warning("parse_string called with non-JSON or empty body")
+		return jsonify({})  # as expected by the JS
+
 	try:
 		result = Decoder.parse_input(data)
 	except Exception:
-		return jsonify({}) # will be treated as invalid barcode by JS frontend
-
-	if result is None: # Input did not match any regex, will be treated as invalid barcode by JS frontend
+		current_app.logger.exception("Barcode parsing failed")
 		return jsonify({})
 
-	# Always set batch from result if present
+	if result is None:
+		return jsonify({})
+	
 	if 'batch' in result:
 		session['batch'] = result['batch']
 
-	# Add number of times this serial has been used ie check if the settleplate is already registered in DB
+	# check if the settleplate is registered in DB
 	if 'serial' in result:
-		result['used'] = len(db.session.query(Settleplate.ScanDate).filter(Settleplate.Barcode.like(result['serial'])).all())
+		result['used'] = db.session.query(
+			Settleplate.ScanDate).filter(
+				Settleplate.Barcode == result['serial']).count()
 
 	# check if there is a positive test for this lot of settleplates in the DB
-	# If the setting is missing 'positive_test_required', we explicitly treat it as disabled (False).
-	positive_required = settings['general'].get('positive_test_required', False) # Use .get to avoid KeyError if the setting is missing
+	# use .get() to avoid KeyError if 'positive_test_required' is missing from config
+	positive_required = settings['general'].get('positive_test_required', False)
 
+	# When positive test is required, use lot to make batch name (ie batch_prefix+<lot>)
 	if 'lot' in result and positive_required:
 		try:
 			batch_prefix = settings['general']['positive_test_prefix']
 			positive_test_location = settings['general']['positive_test_location']
+
 		except KeyError as e:
-			current_app.logger.error(
-				f"Positive test enabled but missing config key: {e}"
+			current_app.logger.error(f"Positive test enabled but missing config key: {e}")
+			return jsonify({'config_error': True, 'message': f'Missing configuration: {e}'})
+		
+		# always derive batch from lot (single source of truth)
+		batchname = f"{batch_prefix}{result['lot']}"
+		result['batch'] = batchname
+
+		# Any rows with registered positive test that have been scanned:
+		has_been_scanned = db.session.query(
+			db.session.query(Settleplate)
+			.filter(
+				Settleplate.Batch == batchname,
+				Settleplate.Location == positive_test_location,
+				Settleplate.Counts > 0
 			)
-			# Return error in same format as register endpoint
-			return jsonify({
-				'config_error': True,
-				'message': f'Missing configuration: {e}'
-			})
+			.exists()
+		).scalar()
 
-		batchname = batch_prefix+result['lot']
+		# Any rows of registered positive plate are pending scanning:
+		has_registration_pending_scanning = db.session.query(
+			db.session.query(Settleplate)
+			.filter(
+				Settleplate.Batch == batchname,
+				Settleplate.Location == positive_test_location,
+				Settleplate.Counts == -1
+			)
+			.exists()
+		).scalar()
 
-		# determine positive test state by location not by counts
-		positive_plate = db.session.query(Settleplate).filter(
-			Settleplate.Batch == batchname,
-			Settleplate.Location == positive_test_location
-		).first()
+		# case1: plate exists and its colonies counted (scanned)
+		if has_been_scanned:
+			result['no_positive'] = False # Positive test exists, add field as it was in old code
+			result['positive_state'] = "completed"
 
-		if positive_plate is None:
-				result['positive_state'] = "missing" # No positive plate registered yet
-				result['no_positive_batch'] = batchname
-				result['no_positive_location'] = positive_test_location
-
-		elif positive_plate.Counts == -1: # Positive plate exists but has not been counted yet
+		# case2: plate exists but colonies not counted (pending scanning)
+		elif has_registration_pending_scanning:
+			result['no_positive'] = False # add field as it was in old code
 			result['positive_state'] = "registered_uncounted"
-			result['batch'] = batchname
-
+		
+		# if no positive test has been registered, add fields 
+		# which will tell the JS which batch the current plates belongs
+		# and which location to register it. Info will be used to warn the UI 
+		# with "No positive test registered for this batch"
 		else:
-			result['positive_state'] = "completed" # Positive plate exists and has been counted
-	
-	# Handle the case of when 'positive_test_required' = false, set batch from 'lot'
+			result['no_positive'] = True # add field as it was in old code
+			result['positive_state'] = "missing"
+			result['no_positive_batch'] = batchname
+			result['no_positive_location'] = positive_test_location
+
+	#The case when positive test is not required ie positive_required = False
 	elif 'lot' in result:
-		result['batch'] = result['lot']
+		result.setdefault('batch', result['lot'])
 
 	return jsonify(result)
 
