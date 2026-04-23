@@ -48,7 +48,7 @@ def register():
 			current_app.logger.warning(f"Batch mismatch! received={data['batch']} expected={expected_batch}")
 			return jsonify({'error': 'Batch/Lot mismatch', 'expected': expected_batch, 'received': data['batch']}), 400
 		
-		# force correct batch
+		# assign correct batch value (even if client didn't send it or sent wrong value, we override with correct batch derived from lot)
 		data['batch'] = expected_batch
 
 	# Check the presence of required fields

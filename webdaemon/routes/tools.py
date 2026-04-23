@@ -83,7 +83,7 @@ def parse_string():
 			result['positive_state'] = "registered_uncounted"
 		
 		# if no positive test has been registered, add fields 
-		# which will tell the JS which batch the current plates belongs
+		# that will tell the JS which batch the current plate belongs
 		# and which location to register it. Info will be used to warn the UI 
 		# with "No positive test registered for this batch"
 		else:
