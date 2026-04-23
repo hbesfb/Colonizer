@@ -101,11 +101,16 @@ def register():
 
 @blueprint.route('/batch_bydate', methods=(['POST']))
 def batch_bydate():
-	data = request.get_json()
-	batch_id = data['batch']
-	if len(batch_id):
-		limit=25
-		results = db.session.query(Settleplate.ScanDate, Settleplate.Barcode, Settleplate.Location).filter(Settleplate.Batch.like(batch_id)).order_by(Settleplate.ScanDate.desc()).limit(limit).all()
-		response = [{'ScanDate':sp.ScanDate.strftime("%Y-%m-%d %H:%M"),'Barcode':sp.Barcode,'Location':sp.Location} for sp in results]
-		return jsonify(response)
-	return jsonify([])
+	data = request.get_json(silent=True)
+	if not data: # Gaurd against empty JSON ({}) and malformed JSON body (None)
+		return jsonify([])
+
+	batch_id = data.get('batch', '')
+	if not batch_id:
+		return jsonify([])
+
+	limit=25
+	#  table view should show only registraton rows (ie Counts == -1)
+	results = db.session.query(Settleplate.ScanDate, Settleplate.Barcode, Settleplate.Location).filter(Settleplate.Batch==batch_id,Settleplate.Counts==-1).order_by(Settleplate.ScanDate.desc()).limit(limit).all()
+	response = [{'ScanDate':sp.ScanDate.strftime("%Y-%m-%d %H:%M"),'Barcode':sp.Barcode,'Location':sp.Location} for sp in results]
+	return jsonify(response)
