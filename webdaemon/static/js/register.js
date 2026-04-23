@@ -51,6 +51,9 @@ function transition(new_state) {
          new_serial=null;
          new_location=null;
          set_glyph($("#location_glyph"),GLYPH.WAIT);
+         // explicit transition instead of fallthrough, same behaviour as old
+         transition(STATE.SERIAL);
+         break;
 
       case STATE.SERIAL:
          update_fields();
