@@ -33,6 +33,15 @@ class Settleplate(db.Model):
 	def __repr__(self):
 		return '<Settleplate %r>' % self.ID
 
+	@classmethod
+	def get_registration(cls, barcode):
+		return (
+			cls.query
+			.filter(cls.Barcode == barcode,
+					cls.Counts == -1)
+			.one_or_none()
+		)
+
 class SettleplateForm(FlaskForm):
 	Username = StringField('Name', [validators.DataRequired("Please enter study name")])
 	ScanDate = DateTimeField('Date')
