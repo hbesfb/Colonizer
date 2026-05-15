@@ -34,11 +34,9 @@ function transition(new_state) {
          new_batch=null;
          new_serial=null;
          new_location=null;
-         positive_batch=null;
-         positive_location=null;
-         positive_serial=null;
          text_input = "";
          $("#barcode").val(text_input);
+         $("#duplicate").slideUp();
          update_fields();
          update_table();
          set_glyph($("#batch_glyph"),GLYPH.ACTIVE);
@@ -52,9 +50,6 @@ function transition(new_state) {
          new_serial=null;
          new_location=null;
          set_glyph($("#location_glyph"),GLYPH.WAIT);
-         // explicit transition instead of fallthrough, same behaviour as old
-         transition(STATE.SERIAL);
-         break;
 
       case STATE.SERIAL:
          update_fields();
@@ -90,15 +85,6 @@ function process_input(data) {
       
       case STATE.SERIAL:
          if("serial" in data) {
-            // sync batch with parsed result
-            if("batch" in data){
-               new_batch = data.batch;
-            }
-
-              new_serial = data.serial;
-
-            // update UI immidately on scan
-            update_fields();
             // check if settleplate already registered
             if(data.used > 0) {
                $("#duplicate-plate").slideDown();
@@ -183,56 +169,19 @@ function update_fields() {
 }
 
 function check_positive(data) {
-   // Clear all positive-related warnings on each fresh scan
-    $("#no-positive").slideUp();
-    $("#positive-not-counted").slideUp();
-
-   //reset button visibility on each scan
-    $("#no-positive-link").show();
-
-    //reset stored positive test info
-    positive_batch = null;
-    positive_location = null;
-    positive_serial = null;
-
-   // ---------------------------------------------------------
-   // Case 3: Missing positive test (positive_state = "missing")
-   // First plate scanned for this batch and no positive control exists yet.
-   // ---------------------------------------------------------
-   if (data.positive_state === "missing"){
-      // Warn user and return false to stop normal auto-registration -
-      // User must manually register this plate as the positive control via
-      // "Register now" button
-      $("#no-positive-message").text("No positive test registered for lot #" + data.lot);
+   if(data.no_positive) {
       $("#no-positive").slideDown();
-
-      update_fields();
-
-      positive_serial = data.serial;
+      $("#no-positive-lot").text(data.lot);
+      $("#serial").val(data.serial);
       positive_batch = data.no_positive_batch;
       positive_location = data.no_positive_location;
-      return true; // stop process_input, user must confirm positive plate registration via "Register now" first
+      positive_serial = data.serial;
+   } else {
+      $("#no-positive").slideUp();
+      positive_batch = null;
+      positive_location = null;
+      positive_serial = null;
    }
-
-   // ---------------------------------------------------------
-   // Case 2: Positive test exists but is NOT scanned
-   // ---------------------------------------------------------
-   if (data.positive_state === "registered_uncounted") {
-      // Inform the user but allow normal plate scanning to continue.
-       $("#positive-not-counted-batch").text(data.lot);
-      $("#positive-not-counted").slideDown();
-      $("#no-positive-link").hide(); // Hide button but keep warning visible
-
-      return false; // process input as a normal/regular plate
-    }
-
-   // ---------------------------------------------------------
-   // Case 1: Positive test exists AND is scanned
-   // positive_state = "completed"
-   // ---------------------------------------------------------
-   // No warning needed, normal flow 
-   // Clear location field and re-enable it
-   return false // process input as a normal/regular plate
 }
 
 function register_positive() {
@@ -245,20 +194,10 @@ function register_positive() {
    set_glyph($("#serial_glyph"),GLYPH.PASS);
    update_fields();
    register_new();
-   // clear positive state after use so stale values cant be reused
-   positive_batch    = null;
-   positive_location = null;
-   positive_serial   = null;
 }
 
 function register_new() {
    if(new_batch != null && new_serial != null && new_location != null) {
-      // Log the registration payload for debugging
-      console.log("REGISTER PAYLOAD:", {
-         batch:new_batch,
-         serial:new_serial,
-         location:new_location
-      });
       $.ajax({
          type: "POST",
          contentType: "application/json; charset=utf-8",
@@ -266,25 +205,13 @@ function register_new() {
          data: JSON.stringify({batch:new_batch, serial:new_serial, location:new_location}),
             success: function (data) {
                console.log(data);
-               update_table(); // refresh table immediately after DB commit
-
-               // delay: keep last scanned values visible briefly
                setTimeout(function() {
                   transition(STATE.LOOP);
                }, 1000);
             },
-            // Notify of backend errors if available
-            error: function(xhr) {
-            let msg = "Something went wrong.";
-
-            if (xhr.responseJSON && xhr.responseJSON.error) {
-               msg = xhr.responseJSON.error;
-            }
-
-            $("#all-other-alerts").text(msg);
-            console.log("Error:", xhr.status, xhr.responseText);
-            $("#all-other-alerts").slideDown();
-         },
+            error: function (XMLHttpRequest, textStatus, errorThrown) { 
+                           alert("Status: " + textStatus); alert("Error: " + errorThrown);
+            },
          dataType: "json"
       });
    }
@@ -299,17 +226,8 @@ function decode_text() {
       data: JSON.stringify(text_input),
          success: function (data) {
             console.log(data);
-            // check_positive returns true when batch has no positive plate
-            // in this case registraton will happen when user manually clicks "Register now"
-            // which by passes the statemachine entirely by calling 
-            // register_positive(), then register_new()
-            var batchHasNoPositivePlate = check_positive(data);
-
-            if (!batchHasNoPositivePlate){
-               // process plate as a normal plate,
-               // goes through statemachine
-               process_input(data);
-            }
+            check_positive(data);
+            process_input(data);
          },
       dataType: "json"
    });
