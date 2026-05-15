@@ -33,13 +33,22 @@ class Settleplate(db.Model):
 	Exported = db.Column(db.Boolean, default=False)
 
 	def __init__(self, **kwargs):
-			super(Settleplate, self,).__init__(**kwargs)
+			super(Settleplate, self).__init__(**kwargs)
 			self.ScanDate = datetime.now()
 			self.Exported = False
 			self.Version = f"WebApp {__version__}"
 
 	def __repr__(self):
 		return '<Settleplate %r>' % self.ID
+
+	@classmethod
+	def get_registration(cls, barcode):
+		return (
+			cls.query
+			.filter(cls.Barcode == barcode,
+					cls.Counts == -1)
+			.one_or_none()
+		)
 
 class SettleplateForm(FlaskForm):
 	Username = StringField('Name', [validators.DataRequired("Please enter study name")])
