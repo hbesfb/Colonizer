@@ -40,8 +40,14 @@ fi
 
 # create SETTLEPLATE table if it doesn't exist
 log "Ensuring SETTLEPLATE table exists..."
-PGPASSWORD=${DB_PASSWORD} psql -h ${DB_HOST} -U ${DB_USER} -d colonizer -f migrations/initial_tables.sql \
-	|| error "Failed to create or verify SETTLEPLATE table"
+
+if PGPASSWORD="${DB_PASSWORD}" \
+	psql -h "${DB_HOST}" -U "${DB_USER}" -d colonizer \
+		-f migrations/initial_tables_k8s.sql; then
+	log "SETTLEPLATE table verified or created successfully"
+else
+	error "Failed to create or verify SETTLEPLATE table"
+fi
 
 # ---------------- Insert test data ----------------
 # uncomment if you want test data inserted
