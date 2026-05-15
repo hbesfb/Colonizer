@@ -38,7 +38,6 @@ keepalive = 2 #Keep connections alive for 2 seconds
 # Recycle workers to prevent memory leaks
 max_requests = int(os.getenv('GUNICORN_MAX_REQUESTS', '200'))
 max_requests_jitter = int(os.getenv('GUNICORN_MAX_REQUESTS_JITTER', '50'))
-#preload_app = True # Load your Flask app before spawning workers
 
 # Additional logging options
 loglevel = 'info'
