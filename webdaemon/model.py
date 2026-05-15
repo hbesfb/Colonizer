@@ -43,6 +43,12 @@ class Settleplate(db.Model):
 
 	@classmethod
 	def get_registration(cls, barcode):
+		"""
+		Look up the registration row for a settleplate barcode.
+		A registration row is defined as the row where Counts == -1.
+		Returns the matching Settleplate ORM instance, or None if no
+		such row exists. Raises an exception if multiple rows match.
+		"""
 		return (
 			cls.query
 			.filter(cls.Barcode == barcode,
