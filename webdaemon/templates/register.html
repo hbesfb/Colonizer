@@ -77,7 +77,7 @@
 
 {% block scripts %}
 {{ super() }}
-<!-- Inject backend settings into JS as constants -->
+<!-- Inject backend setting into JS as constant -->
 <script>
 	const POSITIVE_TEST_REQUIRED     = JSON.parse('{{ settings.general.positive_test_required | tojson }}');
 </script>
