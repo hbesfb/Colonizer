@@ -4,7 +4,16 @@ import numpy as np
 from typing import Tuple
 import threading
 
+# Use one shared ZMQ context for the whole process. Even if the app currently
+# runs with one thread, Flask/Gunicorn or libraries may create additional
+# threads. Context.instance() is safe in all cases and avoids creating
+# multiple separate ZMQ contexts by accident.
 _context = zmq.Context.instance()
+
+
+# Each thread gets its own ZMQ socket. ZMQ sockets cannot be shared between
+# threads, so using thread-local storage ensures each thread has a separate
+# REQ socket and avoids message ordering problems.
 _thread_local = threading.local()
 
 def _resolve_address():
@@ -26,7 +35,18 @@ def _resolve_address():
     raise ValueError(f"Unknown HARDWARE_TRANSPORT={transport}")
 
 def _get_socket():
-    """Return a thread-local REQ socket, creating it if needed."""
+    """
+    Return the ZMQ REQ socket for the current thread.
+
+    ZMQ sockets cannot be shared between threads, so we store the socket in
+    thread-local storage. This means:
+
+    - If the thread has no socket yet, create one.
+    - If the thread already has a socket, reuse it.
+    - If the socket fails, set it to None so it will be recreated on the next call.
+
+    This ensures each thread always uses its own safe REQ socket.
+    """
     if not hasattr(_thread_local, "socket") or _thread_local.socket is None:
         s = _context.socket(zmq.REQ)
         s.setsockopt(zmq.LINGER, 0)
