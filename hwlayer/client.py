@@ -1,4 +1,5 @@
 import os
+import re
 import zmq
 import numpy as np
 from typing import Tuple
@@ -19,20 +20,16 @@ _thread_local = threading.local()
 def _resolve_address():
     """
     Determine the correct ZMQ address based on environment variables.
-
-    HARDWARE_TRANSPORT = "ipc" or "tcp"
-    HARDWARE_ADDR      = full tcp://host:port (for tcp mode)
+    HARDWARE_ADDR in k8s is the full tcp://host:port
     """
-    # Determine transport type from environment variable, default to "ipc"
-    transport = os.environ.get("HARDWARE_TRANSPORT", "ipc")
-    if transport == "ipc": # running app locally, Pi runs both app + daemon; use IPC transport
-        return "ipc:///tmp/settleplate_hw"
+    # Determine transport type from environment variable, default to legacy "ipc" address
+    addr = os.environ.get("HARDWARE_ADDR", "ipc:///tmp/settleplate_hw")
 
-    if transport == "tcp": # running app in k8s, use TCP transport - HARDWARE_ADDR contains full address
-        addr = os.environ.get("HARDWARE_ADDR")
-        return addr
-    
-    raise ValueError(f"Unknown HARDWARE_TRANSPORT={transport}")
+    # ensure that the first characters are either ipc:// or tcp://
+    if re.search("^(\D{3})://.+", addr):
+        return 
+    else:
+        raise ValueError(f"Invalid HARDWARE_ADDR={addr}, transport unknown")
 
 def _get_socket():
     """
