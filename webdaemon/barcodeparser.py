@@ -4,7 +4,7 @@ from settings import settings
 
 class _BarcodeParser():
 
-	def __init__(self, parent = None):
+	def __init__(self):
 		# setup logging
 		#self.logger = generate_logger("DAEMON")
 		# compile regexp
@@ -21,7 +21,7 @@ class _BarcodeParser():
 				self.regex_patterns.append(re.compile(regex))
 
 	def parse_input(self, text):
-		# clean text
+		# clean the text
 		text = self.string_pattern.sub('', text)
 		params = None
 		for pattern in self.regex_patterns:
