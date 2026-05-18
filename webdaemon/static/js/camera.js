@@ -3,7 +3,6 @@ const image_capture = "/images/live"
 function refresh_image() {
    let url=image_capture + "?mode=" + $("#mode").val() + "&" +new Date().getTime();
    $("#camera").addClass("imageview-loading")
-   $("#camera-img").attr("src", "");
    $("#camera-img").attr("src", url);
 }
 
