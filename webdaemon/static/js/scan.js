@@ -96,8 +96,11 @@ function decode_text(text_input) {
       data: JSON.stringify(text_input),
       success: function (data) {
          console.log(data);
-         if ("serial" in data) {
-            $("#barcode").val(data.serial)
+         // settleplate barcode is saved as serial when workflow starts with a batch scan
+         // and as plate_barcode when workflow starts with plate serial scan
+         if ("serial" in data || "plate_barcode" in data) {
+            const full_barcode = data.serial ?? data.plate_barcode;
+            $("#barcode").val(full_barcode)
             $("#image").attr("src", "/static/settleplate.svg") // reset image on new serial
             plate_info();
          }
