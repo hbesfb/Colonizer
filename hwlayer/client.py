@@ -25,9 +25,9 @@ def _resolve_address():
     # Determine transport type from environment variable, default to legacy "ipc" address
     addr = os.environ.get("HARDWARE_ADDR", "ipc:///tmp/settleplate_hw")
 
-    # ensure that the first characters are either ipc:// or tcp://
-    if re.search("^(\D{3})://.+", addr):
-        return 
+    # Accept only valid ZMQ transport prefixes ("ipc://" or "tcp://") at the start of the address
+    if re.match(r"^(ipc|tcp)://.+", addr):
+        return addr
     else:
         raise ValueError(f"Invalid HARDWARE_ADDR={addr}, transport unknown")
 
