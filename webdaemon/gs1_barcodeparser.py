@@ -118,7 +118,7 @@ def parse_gs1(datamatrix: str):
 		elif ai == "17":
 			if len(value) == 6:  # YYMMDD format
 				try:
-					# extract YYMMDD and convert to datetime eg "270415" -> datetime(2027, 4, 15)
+					# extract YYMMDD and convert to datetime eg "270415" will be datetime(2027, 4, 15)
 					year = int("20" + value[0:2])
 					month = int(value[2:4])
 					day = int(value[4:6])
