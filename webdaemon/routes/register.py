@@ -97,7 +97,7 @@ def check_missing_fields(data: dict, required_fields=None):
 	Check for missing required fields in the input data.
 	"""
 	if required_fields is None:
-		# note that lot and expire we not required in legacy code, 
+		# note that lot and expire were not required in legacy code, 
 		# if missing they are saved with null values in the DB
 		
 		# minimal legacy requirements
