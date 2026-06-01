@@ -105,6 +105,8 @@ function process_input(data) {
                         $("#expired-plate").slideDown();
                         $("#expire-date").text(expire.toLocaleDateString());
                     }
+                } else {
+                    $("#expired-plate").slideUp(); // reset banner from previous scan
                 }
 
                 // warn if positive exists but not counted
