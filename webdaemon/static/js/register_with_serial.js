@@ -95,24 +95,19 @@ function process_input(data) {
                 // always clear duplicate warning on any new serial scan
                 hide($("#duplicate-plate"));
 
-                // guard against missing expire date
                 if (data.expire) {
                     let expire = new Date(data.expire);
-                    if (!isNaN(expire.getTime())) {
-                        if(expire > new Date()) {
-                            hide($("#expired-plate"));
-                        } else {
-                            show($("#expired-plate"));
-                            $("#expire-date").text(expire.toLocaleDateString());
-                        }
+                    if(expire > new Date()) {
+                        // not expired
+                        $("#expired-plate").slideUp();
                     } else {
-                        hide($("#expired-plate"));
+                        // plate expired
+                        $("#expired-plate").slideDown();
+                        $("#expire-date").text(expire.toLocaleDateString());
                     }
-                } else {
-                    hide($("#expired-plate"));   // ensures UI resets
                 }
 
-                // -----> FIXED: warn if positive exists but not counted
+                // warn if positive exists but not counted
                 if (POSITIVE_TEST_REQUIRED && data.positive_pending) {
                      $("#positive-pending-lot").text(data.lot);
                      show($("#positive-pending"));
