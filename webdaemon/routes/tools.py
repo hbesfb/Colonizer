@@ -187,21 +187,21 @@ def apply_positive_test_logic(result):
 
 	# legacy mode (batch-first)
 	if WORKFLOW_STARTS_WITH_BATCH:
+		result['no_positive'] = positive_row is None
+
 		if positive_row is None:
-			result['no_positive'] = True
 			result['no_positive_batch'] = positive_batch
 			result['no_positive_location'] = positive_location
-		else:
-			result['no_positive'] = False
+
 		return result
 	
 	# GS1 mode (serial-first)
+	result['no_positive'] = positive_row is None
+
 	if positive_row is None:
-		result['no_positive'] = True
 		result['no_positive_batch'] = positive_batch
 		result['no_positive_location'] = positive_location
 	else:
-		result['no_positive'] = False
 		result['positive_pending'] = positive_row.Counts == NOT_COUNTED # true if Counts = -1
 
 	return result
