@@ -1,3 +1,7 @@
+# server.py is the hardware daemon running on the Raspberry Pi,
+   # it controls the camera and LED illumination, and 
+   # exposes a ZeroMQ REP endpoint (ie the "server" side of the REQ-REP pattern) that serves requests from the client.py REQ client
+   # returns captured images.
 import os
 import zmq
 import time
