@@ -1,3 +1,11 @@
+# in K8s deployment client.py is the kubernetes‑side REQ client ie
+    # Connects to the Pi using HARDWARE_ADDR=tcp://XXX.XXX.X.XXX:3117 where `XXX.XXX.X.XXX` 
+        # is the ip that will have been assigned to the raspberry Pi
+    # sends requests to the Pi server.py REQ-REP server to capture images
+    # receive captured images from the Pi server.py
+
+# In local development, it defaults to using HARDWARE_ADDR=ipc:///tmp/settleplate_hw 
+# to connect to the local Pi server.
 import os
 import re
 import zmq
