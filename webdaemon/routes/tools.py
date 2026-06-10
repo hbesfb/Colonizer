@@ -184,7 +184,7 @@ def apply_positive_test_logic(result):
 
 	positive_batch = batch_prefix + result['lot']
 	positive_row = query_positive_plate(positive_batch, WORKFLOW_STARTS_WITH_BATCH)
-	
+
 	if positive_row is None: # no row found
 		result['no_positive'] = True
 		result['no_positive_batch'] = positive_batch
