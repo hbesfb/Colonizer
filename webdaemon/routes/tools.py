@@ -184,28 +184,20 @@ def apply_positive_test_logic(result):
 
 	positive_batch = batch_prefix + result['lot']
 	positive_row = query_positive_plate(positive_batch, WORKFLOW_STARTS_WITH_BATCH)
-
-	# legacy mode (batch-first)
-	if WORKFLOW_STARTS_WITH_BATCH:
-		result['no_positive'] = positive_row is None
-
-		if positive_row is None:
-			result['no_positive_batch'] = positive_batch
-			result['no_positive_location'] = positive_location
-
-		return result
 	
-	# GS1 mode (serial-first)
-	result['no_positive'] = positive_row is None
-
-	if positive_row is None:
+	if positive_row is None: # no row found
+		result['no_positive'] = True
 		result['no_positive_batch'] = positive_batch
 		result['no_positive_location'] = positive_location
 	else:
-		result['positive_pending'] = positive_row.Counts == NOT_COUNTED # true if Counts = -1
+		result['no_positive'] = False
+
+	# GS1 mode additionally distinguishes pending vs completed positive test
+	# by setting positive_pending = True if the plate has not been counted yet
+	if not WORKFLOW_STARTS_WITH_BATCH and positive_row is not None:
+		result['positive_pending'] = positive_row.Counts == NOT_COUNTED
 
 	return result
-
 
 def parse_location(data: str):
 	"""
