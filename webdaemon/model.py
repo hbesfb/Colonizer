@@ -6,13 +6,21 @@ from webdaemon.database import db
 from webdaemon.version import __version__
 
 # ------------------------------------------------------
-# Model — Used by create_database() in database.py to create the database table 
+# Model — Used by create_database() in database.py to create the database table, inserts, queries, and all registration logic
 # ------------------------------------------------------
+
 class Settleplate(db.Model):
 	__tablename__ = 'SETTLEPLATE'
 	ID = db.Column(db.Integer, primary_key=True)
 	Username = db.Column(db.Unicode(32))
 	ScanDate = db.Column(db.DateTime)
+	# TODO: find out if we can add a new column PlateSerial since this ORM model is used by both legacy and new deployments
+	# SQLAlchemy requires that every database using this model already has the PlateSerial column.
+	#Therefore:
+		# - If PlateSerial is defined here, ALL legacy DBs must first be migrated
+		#   to include the PlateSerial column.
+		# - Once present in the DB, legacy workflows will simply leave it NULL.
+	#PlateSerial = db.Column(db.String(128))
 	Barcode = db.Column(db.String(128))
 	Lot_no = db.Column(db.String(64))
 	Expires = db.Column(db.Date)
@@ -21,7 +29,7 @@ class Settleplate(db.Model):
 	Location = db.Column(db.Unicode(128))
 	Batch = db.Column(db.String(128))
 	Image = deferred(db.Column(db.LargeBinary)) # deferred so only loaded when accessed, not when queried
-	Colonies = db.Column(db.String(8192))
+	Colonies = db.Column(db.Text) # use unlimited length since db uses  VARCHAR (MAX) and "Colonies" TEXT
 	Exported = db.Column(db.Boolean, default=False)
 
 	def __init__(self, **kwargs):
@@ -35,6 +43,12 @@ class Settleplate(db.Model):
 
 	@classmethod
 	def get_registration(cls, barcode):
+		"""
+		Look up the registration row for a settleplate barcode.
+		A registration row is defined as the row where Counts == -1.
+		Returns the matching Settleplate ORM instance, or None if no
+		such row exists. Raises an exception if multiple rows match.
+		"""
 		return (
 			cls.query
 			.filter(cls.Barcode == barcode,
