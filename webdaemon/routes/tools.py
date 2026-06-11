@@ -66,8 +66,8 @@ def parse_string():
 def handle_legacy_input(raw_data):
 	"""
 	Legacy parser: decodes a settleplate or location barcode using the
-    legacy regex-based Decoder, enriches the result with 'used' count
-    and positive‑test flags, and returns {} on unrecognized input.
+	legacy regex-based Decoder, enriches the result with 'used' count
+	and positive-test flags, and returns {} on unrecognized input.
 	"""
 	result = Decoder.parse_input(raw_data)
 	if result is None:
@@ -96,7 +96,7 @@ def handle_gs1_or_location_input(raw_data):
 	Behavior:
 		- Never raises parser errors to the client (matches legacy behavior)
 		- Adds 'used' count when a plate barcode is successfully decoded
-		- Applies positive‑test logic when a lot number is present
+		- Applies positive-test logic when a lot number is present
 		- Logs parser errors for debugging but returns {} to the client
 	"""
 	gs1, gs1_err = decode_gs1_input(raw_data)
@@ -169,7 +169,7 @@ def apply_positive_test_logic(result):
 			- Counts == -1 means positive_pending = True (i.e., colonies yet to be updated)
 
 		- no_positive = True when no positive-plate row exists at all
-		- no_positive = False when a positive‑plate row exists (irrespective of completed (counts > 0) or pending (counts == -1))
+		- no_positive = False when a positive-plate row exists (irrespective of completed (counts > 0) or pending (counts == -1))
 		- positive_pending = True when row exists but Counts == NOT_COUNTED.
 	"""
 	if 'lot' not in result or not settings['general'].get('positive_test_required', False):
@@ -185,19 +185,32 @@ def apply_positive_test_logic(result):
 	positive_batch = batch_prefix + result['lot']
 	positive_row = query_positive_plate(positive_batch, WORKFLOW_STARTS_WITH_BATCH)
 
-	if positive_row is None: # no row found
-		result['no_positive'] = True
-		result['no_positive_batch'] = positive_batch
-		result['no_positive_location'] = positive_location
-	else:
-		result['no_positive'] = False
+	exists = positive_test_exists(positive_row)
 
-	# GS1 mode additionally distinguishes pending vs completed positive test
+	# Set no_positive to True if no positive plate was found in the DB, otherwise False
+	result['no_positive'] = not exists
+
+	if not exists:
+		result['no_positive_batch']=positive_batch
+		result['no_positive_location']=positive_location
+
+	# legacy mode (batch-first):
+	# only distinguishes positive vs non-positive, so we can return early without checking pending status
+	if WORKFLOW_STARTS_WITH_BATCH:
+		return result
+	
+	# GS1 mode (serial-first):
+	# If a positive plate exists, distinguish between pending vs completed
 	# by setting positive_pending = True if the plate has not been counted yet
-	if not WORKFLOW_STARTS_WITH_BATCH and positive_row is not None:
+	if exists:
 		result['positive_pending'] = positive_row.Counts == NOT_COUNTED
-
 	return result
+
+def positive_test_exists(positive_row):
+	"""
+	Returns True if a positive test plate exists
+	"""
+	return positive_row is not None
 
 def parse_location(data: str):
 	"""
