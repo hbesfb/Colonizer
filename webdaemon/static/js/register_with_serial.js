@@ -99,14 +99,14 @@ function process_input(data) {
                     let expire = new Date(data.expire);
                     if(expire > new Date()) {
                         // not expired
-                        $("#expired-plate").slideUp();
+                        hide($("#expired-plate"));
                     } else {
                         // plate expired
-                        $("#expired-plate").slideDown();
+                        show($("#expired-plate"));
                         $("#expire-date").text(expire.toLocaleDateString());
                     }
                 } else {
-                    $("#expired-plate").slideUp(); // reset banner from previous scan
+                    hide($("#expired-plate")); // reset banner from previous scan
                 }
 
                 // warn if positive exists but not counted
