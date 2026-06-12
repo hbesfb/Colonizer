@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy.orm import deferred
 from flask_wtf import FlaskForm
-from wtforms import StringField, DateTimeField, DateField, FloatField, IntegerField, validators, HiddenField, FieldList
+from wtforms import StringField, DateTimeField, DateField, IntegerField, validators, HiddenField
 from webdaemon.database import db
 from webdaemon.version import __version__
 
