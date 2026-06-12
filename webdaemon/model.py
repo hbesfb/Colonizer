@@ -8,7 +8,6 @@ from webdaemon.version import __version__
 # ------------------------------------------------------
 # Model — Used by create_database() in database.py to create the database table, inserts, queries, and all registration logic
 # ------------------------------------------------------
-
 class Settleplate(db.Model):
 	__tablename__ = 'SETTLEPLATE'
 	ID = db.Column(db.Integer, primary_key=True)
@@ -17,8 +16,7 @@ class Settleplate(db.Model):
 	# TODO: find out if we can add a new column PlateSerial since this ORM model is used by both legacy and new deployments
 	# SQLAlchemy requires that every database using this model already has the PlateSerial column.
 	#Therefore:
-		# - If PlateSerial is defined here, ALL legacy DBs must first be migrated
-		#   to include the PlateSerial column.
+		# - If PlateSerial is defined here, ALL legacy DBs must first be migrated to include the PlateSerial column.
 		# - Once present in the DB, legacy workflows will simply leave it NULL.
 	#PlateSerial = db.Column(db.String(128))
 	Barcode = db.Column(db.String(128))
