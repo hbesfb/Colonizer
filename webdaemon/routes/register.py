@@ -39,7 +39,6 @@ def register_gs1(data):
 	new_sp = build_settleplate(data)
 	return commit_settleplate(new_sp)
 
-
 def build_settleplate(data: dict):
 	"""Construct a Settleplate instance from a validated data dict."""
 	new_sp = Settleplate()
@@ -52,16 +51,15 @@ def build_settleplate(data: dict):
 	# missing values were stored as null in the DB
 	if 'lot' in data:
 		new_sp.Lot_no = data['lot']
-	if 'expire' in data:
-		new_sp.Expires = data['expire']
-
 
 	#TODO: find out if we want to allow registering expired plates, if not:
 	# if 'expire' in data and data['expire'] < datetime.utcnow():
 	# 	return jsonify({'committed': False, 'reason': 'expired_plate'}), 400
+	if 'expire' in data:
+		new_sp.Expires = data['expire']
 
 	new_sp.Counts   = -1
-	
+
 	#TODO consider adding PlateSerial to settleplate model (model.py) to store the original serial number separate from the full barcode
 	# Thereafter you can add a separate field for PlateSerial
 	if not settings['general'].get('workflow_starts_with_batch', True):
@@ -99,7 +97,7 @@ def check_missing_fields(data: dict, required_fields=None):
 	if required_fields is None:
 		# note that lot and expire were not required in legacy code, 
 		# if missing they are saved with null values in the DB
-		
+
 		# minimal legacy requirements
 		required_fields = ['batch', 'serial', 'location']
 	return [k for k in required_fields if k not in data]
