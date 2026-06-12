@@ -31,7 +31,7 @@ class Settleplate(db.Model):
 	Exported = db.Column(db.Boolean, default=False)
 
 	def __init__(self, **kwargs):
-			super(Settleplate, self,).__init__(**kwargs)
+			super(Settleplate, self).__init__(**kwargs)
 			self.ScanDate = datetime.now()
 			self.Exported = False
 			self.Version = f"WebApp {__version__}"
@@ -41,6 +41,12 @@ class Settleplate(db.Model):
 
 	@classmethod
 	def get_registration(cls, barcode):
+		"""
+		Look up the registration row for a settleplate barcode.
+		A registration row is defined as the row where Counts == -1.
+		Returns the matching Settleplate ORM instance, or None if no
+		such row exists. Raises an exception if multiple rows match.
+		"""
 		return (
 			cls.query
 			.filter(cls.Barcode == barcode,
