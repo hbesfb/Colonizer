@@ -40,7 +40,8 @@
       "testserver": false,
       "positive_test_required": true,
       "positive_test_location": "PositiveTest",
-      "positive_test_prefix": "POS"
+      "positive_test_prefix": "POS",
+      "workflow_starts_with_batch": false
    },
    "users": {
       "admin": "admin"
