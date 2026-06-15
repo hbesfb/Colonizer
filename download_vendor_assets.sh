@@ -27,8 +27,8 @@ wget https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.8.0/dist/tf.min.js.map -O w
 
 # download and compress .whls files for packages in requirements_k8s.txt
 pip download --python-version 3.11 --abi cp311 --platform manylinux2014_x86_64 --only-binary=:all: \
-    -r requirements_k8s.txt -d wheeldir/ \
-    && zip -r wheeldir.zip wheeldir/
+	-r requirements_k8s.txt -d wheeldir/ \
+	&& zip -r wheeldir.zip wheeldir/
 
 #Split zipped dir into multiple chunks of less than 100MB and cleanup
 split -b 90M wheeldir.zip wheeldir.zip.part-
