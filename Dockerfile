@@ -35,10 +35,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install Python dependencies
 COPY requirements_k8s.txt .
-COPY wheeldir.zip .
-RUN unzip -q wheeldir.zip && rm wheeldir.zip
+COPY wheeldir.zip.part-* .
+
+# concatenate all parts into one ZIP, unzip and remove ZIPs
+RUN cat wheeldir.zip.part-* > wheeldir.zip \
+	&& rm wheeldir.zip.part-* \
+	&& unzip -q wheeldir.zip \
+	&& rm wheeldir.zip
+
 RUN python3 -m venv $APP_HOME/venv \
-	&& $APP_HOME/venv/bin/pip install --no-index --find-links=$APP_HOME/wheeldir -r requirements_k8s.txt
+	&& $APP_HOME/venv/bin/pip install --no-index --find-links=$APP_HOME/wheeldir -r requirements_k8s.txt \
+	&& rm -rf $APP_HOME/wheeldir
 
 # Copy source
 COPY . .
