@@ -8,7 +8,7 @@ gunicorn==22.0.0
 # Database
 SQLAlchemy==2.0.31
 Flask_SQLAlchemy==3.1.1
-psycopg2== 2.9.10 # used instead of pyodbc
+psycopg2-binary==2.9.12
 
 # needed by app for image post processing
 numpy==2.0.2
