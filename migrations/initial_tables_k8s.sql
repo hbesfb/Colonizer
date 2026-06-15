@@ -26,3 +26,8 @@ CREATE TABLE IF NOT EXISTS "SETTLEPLATE" (
 CREATE UNIQUE INDEX IF NOT EXISTS unique_registration_barcode
     ON "SETTLEPLATE" ("Barcode")
     WHERE "Counts" = -1;
+
+-- directly serves batch_bydate query and positive test lookup
+-- positive check in tools.py filters on batch, batch_dybate also filters on batch
+CREATE INDEX IF NOT EXISTS idx_batch
+    ON "SETTLEPLATE" ("Batch");
