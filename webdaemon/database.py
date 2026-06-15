@@ -67,16 +67,23 @@ def init_database(app):
 		app.config['SQLALCHEMY_DATABASE_URI'] = uri
 		app.logger.info("Using PostgreSQL database (psycopg2 driver).")
 
-		# Initialize SQLAlchemy
-		db.init_app(app)
+		try:
+			# Initialize SQLAlchemy to check if configuration is ok (ie correct URL, driver)
+			db.init_app(app)
+		except Exception as e:
+			app.logger.error(f"Could not initialize PostgreSQL database: {e}")
+			app.logger.error(f"Exception type: {type(e).__name__}")
+			app.logger.error(f"Full traceback: {traceback.format_exc()}")
+			raise
 
-		# Retry logic for PostgreSQL incase DB is not yet ready when app starts
+		# Retry logic for PostgreSQL to test DB Server availability when the app starts
+		# incase DB is not yet ready when app starts
 		MAX_RETRIES = 10
 		retry_delay = 1
 		for attempt in range(1, MAX_RETRIES + 1):
 			try:
 				with app.app_context():
-					db.session.execute(text("SELECT 1"))
+					db.session.execute(text("SELECT 1")) # This could fail if server is not yet ready
 				app.logger.info("PostgreSQL database connection initialized successfully.")
 				app.logger.info(f"PostgreSQL connection successful on attempt {attempt}")
 				break
