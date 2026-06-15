@@ -16,6 +16,11 @@ app = Flask(__name__)
 app.logger.setLevel(logging.INFO)
 app.logger.info(f'Starting Colonizer v{__version__}')
 
+# Make settings available inside all Jinja templates
+@app.context_processor
+def inject_settings():
+	return dict(settings=settings)
+
 # load settings
 # The enviroment sets config file to "kubernetes" in k8s or "production" on the Pi
 # if is not set in the enviroment, it defaults to "default"
