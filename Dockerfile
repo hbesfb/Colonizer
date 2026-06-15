@@ -11,6 +11,13 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 WORKDIR $APP_HOME
 
+ARG SNAPSHOT=20260612T000000Z
+RUN printf '%s\n' \
+	"deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/${SNAPSHOT}/ bookworm main" \
+	"deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/${SNAPSHOT}/ bookworm-updates main" \
+	"deb [check-valid-until=no] https://snapshot.debian.org/archive/debian-security/${SNAPSHOT}/ bookworm-security main" \
+	> /etc/apt/sources.list
+
 # Build-time dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	python3=3.11.2-1+b1 \
@@ -19,62 +26,39 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	python3-pip=23.0.1+dfsg-1 \
 	build-essential=12.9 \
 	gcc=4:12.2.0-3 \
-	libpq-dev=15.16-0+deb12u1 \
-	curl=7.88.1-10+deb12u14 \
-	wget=1.21.3-1+deb12u1 \
+	libpq-dev=15.18-0+deb12u1 \
 	unzip=6.0-28 \
-	git=1:2.39.5-0+deb12u2 \
-	nodejs=18.20.4+dfsg-1~deb12u1 \
-	npm=9.2.0~ds1-1 \
+	sassc=3.6.1+20201027-2+b1 \
 	libgl1=1.6.0-1 \
-	libglib2.0-0=2.74.6-2+deb12u8 \
+	libglib2.0-0=2.74.6-2+deb12u9 \
 	&& rm -rf /var/lib/apt/lists/*
 
-# Install Sass
-RUN npm install -g sass@1.91.0
+# Install Python dependencies
+COPY requirements_k8s.txt .
+COPY wheeldir.zip .
+RUN unzip -q wheeldir.zip && rm wheeldir.zip
+RUN python3 -m venv $APP_HOME/venv \
+	&& $APP_HOME/venv/bin/pip install --no-index --find-links=$APP_HOME/wheeldir -r requirements_k8s.txt
 
-# Copy application
+# Copy source
 COPY . .
 
-# Build Python venv
-RUN python3 -m venv $APP_HOME/venv && \
-	$APP_HOME/venv/bin/pip install --upgrade pip && \
-	$APP_HOME/venv/bin/pip install --no-cache-dir -r requirements_k8s.txt
-
-# Download frontend assets
+# unzip and cleanup frontend assets
 WORKDIR $APP_HOME/webdaemon/static/bootstrap
-RUN wget -q https://github.com/twbs/bootstrap/archive/v4.6.2.zip \
-	&& unzip -q v4.6.2.zip \
+RUN unzip -q v4.6.2.zip \
 	&& cp -r bootstrap-4.6.2/dist/* ./ \
 	&& cp -r bootstrap-4.6.2/scss ./ \
 	&& rm -rf bootstrap-4.6.2 v4.6.2.zip
 
-WORKDIR $APP_HOME/webdaemon/static/jquery
-RUN wget -q https://code.jquery.com/jquery-3.7.1.min.js -O jquery.min.js \
-	&& wget -q https://code.jquery.com/jquery-3.7.1.js -O jquery.js \
-	&& wget -q https://code.jquery.com/jquery-3.7.1.min.map -O jquery.min.map
-
 WORKDIR $APP_HOME/webdaemon/static/fontawesome
-RUN wget -q https://github.com/FortAwesome/Font-Awesome/releases/download/5.15.4/fontawesome-free-5.15.4-web.zip \
-	&& unzip -oq fontawesome-free-5.15.4-web.zip \
-	&& mv fontawesome-free-5.15.4-web/* ./ \
+RUN unzip -oq fontawesome-free-5.15.4-web.zip \
+	&& cp -r fontawesome-free-5.15.4-web/* ./ \
 	&& rm -rf fontawesome-free-5.15.4-web fontawesome-free-5.15.4-web.zip
-
-WORKDIR $APP_HOME/webdaemon/static/jsoneditor
-RUN wget -q https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/10.1.0/jsoneditor.js \
-	&& wget -q https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/10.1.0/jsoneditor.min.js \
-	&& wget -q https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/10.1.0/jsoneditor.css \
-	&& wget -q https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/10.1.0/jsoneditor.min.css \
-	&& wget -q https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/10.1.0/img/jsoneditor-icons.svg -P img
-
-WORKDIR $APP_HOME/webdaemon/static/tensorflow
-RUN wget -q https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.8.0/dist/tf.min.js \
-	&& wget -q https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.8.0/dist/tf.min.js.map
 
 # Compile SCSS
 WORKDIR $APP_HOME/webdaemon/static
 RUN if [ -f scss/bs_theme.scss ]; then \
-		sass scss/bs_theme.scss css/bootstrap_themed.css; \
+		sassc scss/bs_theme.scss css/bootstrap_themed.css; \
 	fi
 
 ###############################################
@@ -90,25 +74,31 @@ ENV DEBIAN_FRONTEND=noninteractive \
 	PYTHONUNBUFFERED=1
 
 WORKDIR $APP_HOME
+ARG SNAPSHOT=20260612T000000Z
+RUN printf '%s\n' \
+	"deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/${SNAPSHOT}/ bookworm main" \
+	"deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/${SNAPSHOT}/ bookworm-updates main" \
+	"deb [check-valid-until=no] https://snapshot.debian.org/archive/debian-security/${SNAPSHOT}/ bookworm-security main" \
+	> /etc/apt/sources.list
 
 # Runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	python3=3.11.2-1+b1 \
 	python3-venv=3.11.2-1+b1 \
-	libpq5=15.16-0+deb12u1 \
+	libpq5=15.18-0+deb12u1 \
 	redis-tools=5:7.0.15-1~deb12u6 \
 	postgresql-client=15+248+deb12u1 \
-	nginx=1.22.1-9+deb12u4 \
+	nginx=1.22.1-9+deb12u8 \
 	fish=3.6.0-3.1+deb12u1 \
 	sudo=1.9.13p3-1+deb12u2 \
 	libgl1=1.6.0-1 \
-	libglib2.0-0=2.74.6-2+deb12u8 \
+	libglib2.0-0=2.74.6-2+deb12u9 \
 	curl=7.88.1-10+deb12u14 \
-	wget=1.21.3-1+deb12u1 \
 	&& rm -rf /var/lib/apt/lists/*
 
-# Copy app + venv from builder
+# Copy app + venv from builder. Remove wheeldir, not needed at runtime
 COPY --from=builder /app/Colonizer /app/Colonizer
+RUN rm -rf $APP_HOME/wheeldir
 
 # Install nginx config
 RUN rm -f /etc/nginx/sites-enabled/default && \
