@@ -105,18 +105,19 @@ app.config['SESSION_COOKIE_NAME'] = 'Colonizer-App'
 app.config['SESSION_PERMANENT'] = True           # allow expiry via timeout below
 app.config['PERMANENT_SESSION_LIFETIME'] = settings['general']['timeout']
 
-# Decide cookie policy based on environment
+# Set Fask session cookie settings
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+
+# Decide other cookie policies based on environment
 if config_file == 'kubernetes':
 	# In k8s: allow cross-site usage, require HTTPS
 	app.config['SESSION_COOKIE_SAMESITE'] = "Lax"
 	app.config['SESSION_COOKIE_SECURE'] = True
-	app.config['SESSION_COOKIE_HTTPONLY'] = True
 	app.logger.info("Session cookies set for Kubernetes (SameSite=Lax, Secure=True, HttpOnly=True)")
 else:
 	# Local dev: strict cookies, no HTTPS requirement
-	app.config['SESSION_COOKIE_SAMESITE'] = "Strict"
-	app.config['SESSION_COOKIE_SECURE'] = False
-	app.config['SESSION_COOKIE_HTTPONLY'] = True
+	app.config['SESSION_COOKIE_SAMESITE'] = "Strict" # default is Lax
+	app.config['SESSION_COOKIE_SECURE'] = False # flax default
 	app.logger.info("Session cookies set for local dev (SameSite=Strict, Secure=False, HttpOnly=True)")
 
 #initialize sessions ensuring app uses the same tested Redis connection
