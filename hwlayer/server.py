@@ -18,14 +18,19 @@ camera = None
 socket = None
 
 def _resolve_bind_address():
-    """ Determine whether to bind IPC (local Pi) or TCP (Kubernetes remote access). """
-    transport = os.environ.get("HARDWARE_TRANSPORT", "ipc")
-    if transport == "ipc":
-        return "ipc:///tmp/settleplate_hw"
-    if transport == "tcp":
-        port = os.environ.get("HARDWARE_PORT", "3117")
-        return f"tcp://*:{port}"
-    raise ValueError(f"Unknown HARDWARE_TRANSPORT={transport}")
+   """ 
+      Determine whether to bind IPC (local Pi) or TCP (Kubernetes remote access). 
+      For TCP it binds to all network interfaces (ie the * tcp://*:{port}, 
+      meaning it will accept connections on the given port regardless of which 
+      interface they arrive on (eg wired ethernet, WiFi or 127.0.0.1)
+   """
+   transport = os.environ.get("HARDWARE_TRANSPORT", "ipc")
+   if transport == "ipc":
+      return "ipc:///tmp/settleplate_hw"
+   if transport == "tcp":
+      port = os.environ.get("HARDWARE_PORT", "3117")
+      return f"tcp://*:{port}"
+   raise ValueError(f"Unknown HARDWARE_TRANSPORT={transport}")
 
 def start_socket():
    global socket
