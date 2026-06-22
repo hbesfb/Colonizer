@@ -3,6 +3,7 @@ import os
 import time
 from sqlalchemy import text
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.engine import URL
 from settings import settings
 
 db = SQLAlchemy()
