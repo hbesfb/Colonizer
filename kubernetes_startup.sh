@@ -33,6 +33,7 @@ for i in {1..10}; do
 done
 
 # ---------------- PostgreSQL preparations ----------------
+# wait for PostgreSQL to become reachable before Gunicorn starts.
 log "Waiting for PostgreSQL at ${DB_HOST:-postgres-service}:${DB_PORT:-5432}..."
 if ! timeout 30 bash -c "until pg_isready -h ${DB_HOST:-postgres-service} -p ${DB_PORT:-5432} >/dev/null 2>&1; do sleep 2; done"; then
 	error "PostgreSQL not available"
@@ -42,7 +43,7 @@ fi
 log "Ensuring SETTLEPLATE table exists..."
 
 if PGPASSWORD="${DB_PASSWORD}" \
-	psql -h "${DB_HOST}" -U "${DB_USER}" -d colonizer \
+	psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" \
 		-f migrations/initial_tables_k8s.sql; then
 	log "SETTLEPLATE table verified or created successfully"
 else
@@ -52,7 +53,7 @@ fi
 # ---------------- Insert test data ----------------
 # uncomment if you want test data inserted
 # log "Adding some test data..."
-# PGPASSWORD=${DB_PASSWORD} psql  -h ${DB_HOST} -U ${DB_USER} -d colonizer -f migrations/003_insert_test_data.sql \
+# PGPASSWORD=${DB_PASSWORD} psql  -h ${DB_HOST} -U ${DB_USER} -d "${DB_NAME}" -f migrations/003_insert_test_data.sql \
 # 	|| error "Failed to insert test data"
 
 # ---------------- Start Gunicorn ----------------
