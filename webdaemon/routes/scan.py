@@ -36,21 +36,29 @@ def scan():
 	if plateinfo is None:
 		return jsonify({'committed': False, 'error': 'barcode not registered'})
 
+	# Build new scan row
 	sp = Settleplate()
 	sp.Username = g.username
 	sp.ScanDate = datetime.fromisoformat(image_timestamp)
 	sp.Barcode = barcode
 	sp.Lot_no = plateinfo.Lot_no
 	sp.Expires = plateinfo.Expires
-	counts = data.get('counts')
-	if counts is None:
+	counts_raw = data.get('counts')
+	if counts_raw is None:
 		return jsonify({'committed': False, 'error': 'missing counts'})
-	sp.Counts = int(counts) # ensure that counts is an integer
+
+	try:
+		sp.Counts = int(counts_raw)
+	# catch wrong values (ValueError eg "abc") and wrong types (TypeError eg list (int([])) or dict (int({})) )
+	except (ValueError, TypeError):
+		return jsonify({'committed': False, 'error': 'counts must be an integer'})
+
 	sp.Location = plateinfo.Location
 	sp.Batch = plateinfo.Batch
 	sp.Image = img
 	# colonies should be string not bytes as was with old code ( data['colonies'].encode('utf8')  # produces bytes)
 	sp.Colonies =  data.get('colonies')
+
 	try:
 		db.session.add(sp)
 		db.session.commit()
