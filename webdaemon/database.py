@@ -1,6 +1,4 @@
 import traceback
-import os
-import time
 from sqlalchemy import text
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.engine import URL
@@ -8,7 +6,7 @@ from settings import settings
 
 db = SQLAlchemy()
 
-def init_database(app):
+def init_database(app, is_k8s=False):
 	"""
 	Initialize the database connection.
 	Supports:
@@ -76,26 +74,19 @@ def init_database(app):
 			app.logger.error(f"Exception type: {type(e).__name__}")
 			app.logger.error(f"Full traceback: {traceback.format_exc()}")
 			raise
+		
+		# Verify that the database is reachable
+		try:
+			with app.app_context():
+				db.session.execute(text("SELECT 1"))
+			app.logger.info("PostgreSQL database connection initialized successfully.")
+		except Exception as e:
+			app.logger.critical(f"PostgreSQL connection test failed: {e}")
+			app.logger.error(f"Full traceback: {traceback.format_exc()}")
+			raise
 
-		# Retry logic for PostgreSQL to test DB Server availability when the app starts
-		# incase DB is not yet ready when app starts
-		MAX_RETRIES = 10
-		retry_delay = 1
-		for attempt in range(1, MAX_RETRIES + 1):
-			try:
-				with app.app_context():
-					db.session.execute(text("SELECT 1")) # This could fail if server is not yet ready
-				app.logger.info("PostgreSQL database connection initialized successfully.")
-				app.logger.info(f"PostgreSQL connection successful on attempt {attempt}")
-				break
-			except Exception as e:
-				app.logger.warning(
-					f"PostgreSQL connection failed (attempt {attempt}/{MAX_RETRIES}): {e}"
-				)
-				time.sleep(retry_delay)
-		else:
-			app.logger.critical("PostgreSQL unavailable after retries — cannot start")
-			raise SystemExit(1)
+	else:
+		raise ValueError(f"Unsupported database type: {db_type}") # eg typos and empty string "" should error
 
 	# Try initializing for all DB types except PostgreSQL (which has been handled above)
 	if db_type not in ['postgres', 'postgresql']:
@@ -108,12 +99,12 @@ def init_database(app):
 			raise
 		
 	# ------------------------------------------------------------
-	# Kubernetes-specific connection tests to PostgreSQL
+	# Kubernetes-specific PostgreSQL diagnostics
+	# (currently intended for PostgreSQL deployments)
 	# ------------------------------------------------------------
 	# The enviroment sets config file to "kubernetes" in k8s or "production" on the Pi
 	# if is not set in the enviroment, it defaults to "default"
-	config_file = os.environ.get('SETTLEPLATE_CONFIG', 'default')
-	if config_file == "kubernetes" and db_type.lower() in ['postgres', 'postgresql']:
+	if is_k8s:
 		try:
 			# Test the database connection within app context
 			with app.app_context():
@@ -127,16 +118,16 @@ def init_database(app):
 					raise
 			
 				# Test 2: Attempt a simple database query
-				try:
-					result = db.session.execute(db.text('SELECT version()')).scalar()
+				try: # Get postgreSQL version
+					result = db.session.execute(text('SELECT version()')).scalar()
 					app.logger.info(f"Database connection successful. PostgreSQL version: {result}")
 				except Exception as e:
 					app.logger.error(f"Database connection test failed: {e}")
 					raise
 			
-				# Test 4: Test transaction capability
+				# Test 3: Test transaction capability
 				try:
-					db.session.execute(db.text('SELECT 1')).scalar()
+					db.session.execute(text('SELECT 1'))
 					db.session.commit()
 					app.logger.info("Database transaction test successful.")
 				except Exception as e:
@@ -157,20 +148,22 @@ def init_database(app):
 			raise	
 
 def create_database(app):
-	from webdaemon.model import Settleplate
+
+	"""
+	Create all SQLAlchemy-managed tables if they do not already exist.
+	
+	This operation is idempotent
+	"""
 	with app.app_context():
-		db.create_all()
+		try:
+			db.create_all()
+			app.logger.info("Database tables created/verified successfully.")
+		except Exception as e:
+			app.logger.error(f"Database creation failed: {e}")
+			raise
 
-		# Verify table exists
-		result = db.session.execute(
-			text("SELECT to_regclass('public.settleplate');")
-			).scalar()
-		
-		if result:
-			app.logger.info("Database table SETTLEPLATE is present and ready.")
-		else:
-			app.logger.error("SETTLEPLATE table was NOT created!")
-
+# This is not used anywhere, leaving it in code in case it was a legacy utility
+# # Not used by the application at runtime.
 def create_database_cmd():
 	from webdaemon.model import Settleplate
 	from sqlalchemy.dialects import mssql
