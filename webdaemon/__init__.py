@@ -7,8 +7,9 @@ from flask_session import Session
 from redis import Redis
 from settings import settings, get_secret
 from webdaemon.status import servicemonitor
-from webdaemon.database import init_database, create_database
+from webdaemon.database import init_database, create_database, db
 from webdaemon.version import __version__
+from sqlalchemy import text
 import hwlayer.client as hwclient
 
 # create flask app
@@ -109,7 +110,7 @@ app.config['PERMANENT_SESSION_LIFETIME'] = settings['general']['timeout']
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 
 # Decide other cookie policies based on environment
-if config_file == 'kubernetes':
+if is_k8s:
 	# In k8s: allow cross-site usage, require HTTPS
 	app.config['SESSION_COOKIE_SAMESITE'] = "Lax"
 	app.config['SESSION_COOKIE_SECURE'] = True
@@ -133,7 +134,7 @@ app.redis = redis_client
 # Database Initialization #
 # ------------------------------------------------------
 app.logger.info('initializing database...')
-init_database(app)
+init_database(app, is_k8s)
 
 #we dont use create_database() in k8s, startup script handles settleplate table creation
 if not is_k8s:
@@ -190,10 +191,29 @@ def health_check():
 @app.route('/ready')
 def readiness_check():
 	"""
-	Readiness check endpoint for Kubernetes readiness probe
-	This checks if the application is ready to serve traffic 
+	Check if pod is ready to handle traffic by confirming if 
+	needed dependencies are available.
 	"""
-	return "ok", 200
+	try:
+		# Redis
+		app.redis.ping()
+
+		# Database
+		db.session.execute(text("SELECT 1"))
+
+		return {
+			"status": "ready"
+		}, 200
+
+	except Exception as e:
+		app.logger.error(
+			f"Readiness check failed: {e}"
+		)
+
+		return {
+			"status": "not_ready",
+			"error": str(e)
+		}, 503
 
 @app.route('/deep_ready')
 def deep_readiness_check():
@@ -202,13 +222,29 @@ def deep_readiness_check():
 	This performs the full dependency check:
 	- Redis
 	- Hardware (ZMQ)
+	- DB
 	- Colonizer version
 	- Config
 	"""
 	checks = []
 	all_ready = True
-	
+
 	try:
+		# Test PostgreSQL connection
+		try:
+			db.session.execute(text("SELECT 1"))
+			checks.append({
+				'component': 'database',
+				'status': 'ok'
+			})
+		except Exception as e:
+			checks.append({
+				'component': 'database',
+				'status': 'failed',
+				'error': str(e)[:50]
+			})
+			all_ready = False
+
 		# Test Redis connection
 		if app.redis:
 			try:
@@ -220,7 +256,7 @@ def deep_readiness_check():
 		else:
 			checks.append({'component': 'redis', 'status': 'unavailable'})
 			all_ready = False
-		
+
 		# Test hardware connection, readiness should not fail because of hardware
 		if app.hardware_initialized:
 			try:
