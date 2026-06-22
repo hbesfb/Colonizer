@@ -107,3 +107,13 @@ def is_ready():
     except Exception as e:
         _thread_local.socket = None # reset only this thread’s socket, not global
         return False
+
+def pi_mounted_storage_ok():
+    socket = _get_socket()
+    try:
+        socket.send_json({'CMD': 'storage'})
+        response = socket.recv_json()
+        return response.get("msg", False)
+    except:
+        _thread_local.socket = None
+        return False

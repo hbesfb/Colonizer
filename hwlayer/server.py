@@ -8,6 +8,7 @@ import time
 from hwlayer.logging import logging
 from hwlayer.illumination import illumination
 from hwlayer.picamera import PiHQCamera2
+from settings import settings
 
 log = logging.getLogger('Server')
 log.setLevel('DEBUG')
@@ -87,6 +88,15 @@ def main():
 
          #for key, value in settings['camera'].items():
          #    request.setdefault(key, value)
+
+         # Let Pi report that savepath exists, is writable and is mounted (if its an external disk)
+         if cmd == 'storage':
+            try:
+               ok = os.path.exists(settings['general']['savepath']) and os.access(settings['general']['savepath'], os.W_OK)
+               socket.send_json({'msg': ok})
+            except Exception as e:
+               socket.send_json({'msg': False, 'error': str(e)})
+            continue
 
          # if capturing array
          if cmd == 'capture':
