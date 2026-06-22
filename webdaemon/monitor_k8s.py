@@ -15,7 +15,7 @@ class K8sServiceMonitor(threading.Thread):
     """
     Periodic service monitor used when running inside Kubernetes.
     This monitor:
-    - checks SQL, camera (via ZMQ to the Pi), and storage (PVC)
+    - checks SQL, camera (via ZMQ to the Pi), and storage (PVC) every 30 seconds
     - avoids unnecessary checks when the UI is idle
     - runs as a dedicated background thread with a fixed interval
     - logs transitions (eg SQL OK to FAIL, camera online to offline, storage OK to FAIL)
@@ -78,18 +78,12 @@ class K8sServiceMonitor(threading.Thread):
             log.debug(f"K8sServiceMonitor: Camera/Pi check failed: {e}")
             camera_status = False
 
-        # Check storage status (PVC)
+        # Check storage status - mounted path on the Pi
         storage_status = False
         try:
-            mountpoint = settings["general"].get("mountpoint", "/mnt/data")
-            savepath = settings["general"].get("savepath", "/mnt/data/Data/Colonizer/")
-            if os.path.ismount(mountpoint):
-                storage_status = True
-            # Check if savepath exists and is writable
-            elif os.path.exists(savepath) and os.access(savepath, os.W_OK):
-                storage_status = True
-        except Exception as e:
-            log.warning(f"K8sServiceMonitor: Storage check failed: {e}")
+            storage_status = hwlayer.client.pi_mounted_storage_ok()
+        except:
+            storage_status = False
 
         # --- Update status with transition logging ---
         new_status = {
