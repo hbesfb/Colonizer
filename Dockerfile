@@ -33,7 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	libglib2.0-0=2.74.6-2+deb12u9 \
 	&& rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+# Copy dependencies
 COPY requirements_k8s.txt .
 COPY wheeldir.tar.part-* .
 
@@ -81,6 +81,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 	PYTHONUNBUFFERED=1
 
 WORKDIR $APP_HOME
+
 ARG SNAPSHOT=20260612T000000Z
 RUN printf '%s\n' \
 	"deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/${SNAPSHOT}/ bookworm main" \
@@ -95,12 +96,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	libpq5=15.18-0+deb12u1 \
 	redis-tools=5:7.0.15-1~deb12u6 \
 	postgresql-client=15+248+deb12u1 \
-	nginx=1.22.1-9+deb12u8 \
+	nginx=1.22.1-9+deb12u9 \
 	fish=3.6.0-3.1+deb12u1 \
 	sudo=1.9.13p3-1+deb12u2 \
 	libgl1=1.6.0-1 \
 	libglib2.0-0=2.74.6-2+deb12u9 \
-	curl=7.88.1-10+deb12u14 \
+	curl=7.88.1-10+deb12u15 \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Copy app + venv from builder. Remove wheeldir, not needed at runtime
@@ -115,7 +116,7 @@ RUN rm -f /etc/nginx/sites-enabled/default && \
 RUN useradd -m -s /usr/bin/fish ${APP_USER} && \
 	mkdir -p /home/${APP_USER}/.config/fish
 
-# Ensure Matplotlib can write its cache directoryto remove "permission denied" warnings in logs
+# Ensure Matplotlib can write its cache directory to remove "permission denied" warnings in logs
 RUN mkdir -p /home/${APP_USER}/.config/matplotlib && \
 	chown -R ${APP_USER}:${APP_USER} /home/${APP_USER}/.config
 
