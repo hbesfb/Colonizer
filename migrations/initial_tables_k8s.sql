@@ -16,9 +16,13 @@ CREATE TABLE IF NOT EXISTS "SETTLEPLATE" (
     "Batch" VARCHAR(128),
     "Image" BYTEA,
     "Colonies" TEXT,
-    "Exported" BOOLEAN DEFAULT FALSE,
-     CONSTRAINT unique_batch_location UNIQUE ("Batch", "Location")
+    "Exported" BOOLEAN DEFAULT FALSE
 );
+
+-- only one registered plate per batch/location, scan rows can still be inserted
+CREATE UNIQUE INDEX IF NOT EXISTS unique_registration_batch_location
+ON "SETTLEPLATE" ("Batch", "Location")
+WHERE "Counts" = -1;
 
 -- unique_registration_barcode prevents the same barcode being registered twice as a pending plate, 
 -- But it also means the same barcode can appear unlimited times once 
