@@ -43,6 +43,9 @@
    "users": {
       "admin": "admin"
    },
+    "authsrv": {
+      "url": "https://authsrv.staging.hbesfb.net/login"
+   },
    "hive": {
       "confidence_threshold_low": 0.2,
       "confidence_threshold_high": 0.5,
