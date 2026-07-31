@@ -10,9 +10,6 @@
       "table": "SETTLEPLATE"
    },
    "regex": {
-      "user": [
-         "^user:(?P<user>.+)$"
-      ],
       "batch": [
          "^(?P<batch>[A-Za-z]{3,5}\\d{7})$",
          "^(?P<batch>[A-Za-z]{3,5}\\d{8}-\\d)$",
