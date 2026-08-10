@@ -158,6 +158,16 @@ except Exception as e:
 	app.logger.error(f"Could not resolve ZMQ address: {e}")
 	zmq_addr = None
 
+# also resolve/log the status-socket address at startup, so a
+# misconfigured HARDWARE_STATUS_ADDR is visible in pod logs immediately
+# rather than only surfacing later on the first /camera_zmq or /status hit.
+try:
+	zmq_status_addr = hwclient._resolve_status_address()
+	app.logger.info(f"Using ZMQ status address: {zmq_status_addr}")
+except Exception as e:
+	app.logger.error(f"Could not resolve ZMQ status address: {e}")
+	zmq_status_addr = None
+
 # Initialize the hardware client 
 try:
 	hardware_initialized = hwclient.start_socket()
@@ -187,6 +197,23 @@ def health_check():
 	except Exception as e:
 		app.logger.error(f'Health check failed: {e}')
 		return {'status': 'unhealthy', 'error': str(e)}, 500
+
+@app.route('/camera_zmq')
+def camera_zmq():
+	"""
+	ZMQ readiness check.
+	Confirms: “The Pi's ZMQ server is running and can respond to a ping.”
+	Does NOT test camera capture.
+	"""
+	try:
+		ready = hwclient.is_ready()
+		if ready:
+			return {"camera_zmq": "online"}, 200
+		else:
+			return {"camera_zmq": "offline"}, 503
+	except Exception as e:
+		app.logger.error(f"ZMQ readiness check failed: {e}")
+		return {"camera_zmq": "error", "error": str(e)}, 503
 
 @app.route('/ready')
 def readiness_check():
@@ -299,7 +326,7 @@ def service_status():
 		return {
 			"status": "ok",
 			"sql": status.get("sql"),
-			"camera": status.get("camera"), # <-- hardware readiness already included
+			"camera_zmq": status.get("camera_zmq"),
 			"storage": status.get("storage"),
 			"last_update": servicemonitor._lastupdate.isoformat()
 		}, 200
