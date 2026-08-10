@@ -140,14 +140,52 @@ def main():
                }
                socket.send_json(response)
                log.error(response['error'])
-               
-      camera.update()
+
+         # support both new K8s client (multipart frames) AND old Pi client (JSON-embedded JPEG)
+         # New K8s client sends JPEG in TWO frames:
+         #   Frame 1: JSON {CMD:'save', filename:'...'}
+         #   Frame 2: raw JPEG bytes
+         # Old Pi client sends JPEG inside the JSON
+         # We try to read Frame 2 first; if not present, fall back to JSON field.
+
+         if cmd == 'save':
+            filename = request['filename']
+            savepath = os.path.join(settings['general']['savepath'], filename)
+
+            try:
+            # request from k8s: Check whether client sent the JPEG in the second ZMQ message frame
+               try:
+                  jpeg_bytes = socket.recv(copy=True)
+               except Exception:
+                  jpeg_bytes = None
+
+               # Fallback(Assume request is old client that runs on the Pi): JSON-embedded bytes sent by old client
+               if jpeg_bytes is None:
+                  jpeg_bytes = request.get('jpeg_bytes')
+
+               if jpeg_bytes is None:
+                  socket.send_json({'msg': 'error', 'error': 'No processed JPEG provided'})
+                  continue
+
+               with open(savepath, 'wb') as f:
+                     f.write(jpeg_bytes)
+
+               socket.send_json({'msg': 'ok'})
+            except Exception as e:
+               socket.send_json({'msg': 'error', 'error': str(e)})
+            continue
+
+      # camera.update() also touches hardware state, lock it too
+      with camera_lock:
+         camera.update()
 
 if __name__ == '__main__':
    # load settings
    start_illumination()
-   start_socket()
    start_camera()
+   start_socket() #moved to below camera(): If PiHQCamera2() initialization is asynchronous or not complete when the status thread starts, ready could return false.
+   start_status_socket()  # start the new independent status thread
+
    try:
       main()
    except KeyboardInterrupt:
