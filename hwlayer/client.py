@@ -20,8 +20,8 @@ import threading
 _context = zmq.Context.instance()
 
 
-# Each thread gets its own ZMQ socket. ZMQ sockets cannot be shared between
-# threads, so using thread-local storage ensures each thread has a separate
+# ZMQ sockets are NOT thread-safe; give each thread its own ZMQ socket. 
+# Thread-local storage ensures each thread has a separate
 # REQ socket and avoids message ordering problems.
 _thread_local = threading.local()
 
@@ -56,6 +56,7 @@ def _get_socket():
         s = _context.socket(zmq.REQ)
         s.setsockopt(zmq.LINGER, 0)
         s.RCVTIMEO = 5000 # ms
+        s.SNDTIMEO = 5000 # timeout for sending
         s.connect(_resolve_address())
         _thread_local.socket = s
     return _thread_local.socket
@@ -81,8 +82,16 @@ def capture_image(capture_settings={}) -> Tuple[bool, np.ndarray]:
     request['CMD'] = 'capture'
 
     try:
-        # send
+        # If the socket is stuck waiting for a reply (REQ state machine),
+        # POLLOUT will be 0. In that case, the socket can never send again.
+        # Reset it so the next send starts from a clean REQ state.
+        if socket.getsockopt(zmq.EVENTS) & zmq.POLLOUT == 0:
+            _thread_local.socket = None
+            socket = _get_socket()
+
+        # send request
         socket.send_json(request)
+
         # wait for data
         response = socket.recv_json()
         if 'error' in response:
@@ -101,6 +110,11 @@ def is_ready():
     socket = _get_socket()
     request = {'CMD': 'ready'}
     try:
+        # prevent REQ/REP deadlock before sending
+        if socket.getsockopt(zmq.EVENTS) & zmq.POLLOUT == 0:
+            _thread_local.socket = None
+            socket = _get_socket()
+
         socket.send_json(request)
         response = socket.recv_json()
         return response.get("msg", False)
@@ -111,6 +125,11 @@ def is_ready():
 def pi_mounted_storage_ok():
     socket = _get_socket()
     try:
+        # prevent REQ/REP deadlock before sending
+        if socket.getsockopt(zmq.EVENTS) & zmq.POLLOUT == 0:
+            _thread_local.socket = None
+            socket = _get_socket()
+
         socket.send_json({'CMD': 'storage'})
         response = socket.recv_json()
         return response.get("msg", False)
