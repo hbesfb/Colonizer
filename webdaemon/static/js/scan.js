@@ -34,6 +34,20 @@ $(document).ready(function() {
       $("#Counts").attr("readonly", false);
    });
 
+   // add error handler such that user sees that camera is offline immediately when refreshing, 
+   // rather than only finding out when they try to save.
+   $("#image").on('error', function() {
+      if ($(this).attr("src") == image_src) {
+         $("#image").attr("src", image_placeholder);  // restore placeholder on camera failure
+         $("#commit_fail").html(`<strong>Error!</strong>&nbsp;No image was captured - check if camera is available`);
+         $("#commit_fail").slideDown();
+         $("#Counts").attr("readonly", true);
+         $("#refresh").attr("disabled", false);  // allow image recapture retry
+         $("#barcode").attr("readonly", false);  // allow serial rescan
+         slideup_all();
+      }
+   });
+
    $("#Counts").change(function (e) {
       $("#refresh").attr("disabled", true);
       $("#commit").attr("disabled", false);
@@ -75,7 +89,6 @@ $(document).ready(function() {
          },
          dataType: "json"
       });
-      
    });
 });
 

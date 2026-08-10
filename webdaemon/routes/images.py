@@ -44,17 +44,20 @@ def live():
 		session['image_timestamp'] = None
 
 	# check for valid image_jpeg
+	# if no image was captured, return 404 to trigger the error handler in the browser
 	if session['image_jpeg'] is None:
-		return redirect("/static/settleplate.svg")
-	else:
-		resp = make_response(session['image_jpeg'])
-		resp.headers.set('Content-Type', 'image/jpeg')
-		#resp.headers.set('Content-Disposition', 'inline', capture='.jpg')
-		resp.cache_control.no_cache = True
-		resp.cache_control.must_revalidate = True
-		resp.cache_control.max_age = 5
-		resp.last_modified = datetime.fromisoformat(session['image_timestamp'])
-		return resp
+		current_app.logger.warning("Camera offline: no image_jpeg in session")
+		return make_response("No image captured - check if camera is available", 404)
+
+	#normal case
+	resp = make_response(session['image_jpeg'])
+	resp.headers.set('Content-Type', 'image/jpeg')
+	#resp.headers.set('Content-Disposition', 'inline', capture='.jpg')
+	resp.cache_control.no_cache = True
+	resp.cache_control.must_revalidate = True
+	resp.cache_control.max_age = 5
+	resp.last_modified = datetime.fromisoformat(session['image_timestamp'])
+	return resp
  
 @blueprint.route('/<int:image_id>', methods=['GET'])
 def get_image(image_id):
@@ -81,14 +84,30 @@ def save_image():
 			'batch_id' : data['batch']
 		}
 		filename = '{user}-{timestamp}-{batch_id}.jpg'.format(**params)
-		filepath = os.path.join(settings['general']['savepath'], filename)
-		with open(filepath,'wb') as f:
-			img_out = session['image_jpeg']
-			current_app.logger.info(f'User {g.username} saving image to: {filename} ({len(img_out)/1024} kB)')
-			f.write(img_out)
+
+		config_file = os.environ.get('SETTLEPLATE_CONFIG', 'default')
+		is_k8s = (config_file == "kubernetes")
+		if is_k8s:
+			# ask the Pi via RPC to save the image to its local storage
+			success, response = hwlayer.client.send({
+				'CMD': 'save',
+				'filename': filename,
+				'jpeg_bytes': session['image_jpeg']
+			})
+			if not success or response.get('msg') != 'ok':
+				raise Exception(response.get('error', 'Pi failed to save image'))
+		else:
+			filepath = os.path.join(settings['general']['savepath'], filename)
+			with open(filepath,'wb') as f:
+				img_out = session['image_jpeg']
+				current_app.logger.info(f'User {g.username} saving image to: {filename} ({len(img_out)/1024} kB)')
+				f.write(img_out)
 	except Exception as error:
-		current_app.logger.error('Failed to write image: %s'%error)
-		return jsonify({'saved':False, 'error':str(error)})
+		current_app.logger.error('Failed to write image to Pi local storage: %s'%error)
+
+		# User-friendly message
+		user_error = "No image available — camera may be offline."
+		return jsonify({'saved': False, 'error': user_error})
 	else:
 		return jsonify({'saved':True, 'filename':filename})
 

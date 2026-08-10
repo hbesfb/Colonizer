@@ -112,6 +112,8 @@ class Settings(FileSystemEventHandler):
 
 settings = Settings()
 
+# Note: this is not used by k8s deployed Colonizer, there we use AD authentication 
+# for the local admin we use local_admin_login in webdaemon/routes/users.py.
 def user_validator(username, password):
 	user_min = settings['general']['user_min']
 	user_max = settings['general']['user_max']
