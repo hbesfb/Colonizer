@@ -43,6 +43,7 @@ RUN cat wheeldir.tar.part-* > wheeldir.tar \
 	&& tar -xf wheeldir.tar \
 	&& rm wheeldir.tar
 
+# Create python venv and install packages in wheel dir as pinned in req. file
 RUN python3 -m venv $APP_HOME/venv \
 	&& $APP_HOME/venv/bin/pip install --no-index --find-links=$APP_HOME/wheeldir -r requirements_k8s.txt \
 	&& rm -rf $APP_HOME/wheeldir
@@ -104,9 +105,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	curl=7.88.1-10+deb12u15 \
 	&& rm -rf /var/lib/apt/lists/*
 
-# Copy app + venv from builder. Remove wheeldir, not needed at runtime
+# Copy app + venv from builder
 COPY --from=builder /app/Colonizer /app/Colonizer
-RUN rm -rf $APP_HOME/wheeldir
 
 # Install nginx config
 RUN rm -f /etc/nginx/sites-enabled/default && \

@@ -32,7 +32,9 @@ else:
 # ---------------------------
 # Worker configuration
 # ---------------------------
-timeout = 30 # Max time (seconds) a worker can take to respond before being killed. Prevents hung requests.
+# Max time (seconds) a worker can take to respond before being killed. Prevents hung requests.
+# set to be greater than client.py's main-socket RCVTIMEO (35s)
+timeout = 45 
 keepalive = 2 #Keep connections alive for 2 seconds
 
 # Recycle workers to prevent memory leaks

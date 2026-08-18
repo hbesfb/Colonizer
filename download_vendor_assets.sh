@@ -49,17 +49,3 @@ split -b 90M wheeldir.tar wheeldir.tar.part-
 #cleanup
 rm -rf wheeldir/
 rm wheeldir.tar
-
-
-# rm -rf wheeldir
-# mkdir wheeldir
-
-# pip download \
-#   --python-version 3.11 \
-#   --abi cp311 \
-#   --platform manylinux2014_x86_64 \
-#   --only-binary=:all: \
-#   -r requirements_k8s.txt \
-#   -d wheeldir
-
-# find wheeldir -type f -exec sha256sum {} \; | sort > checksums2.txt
