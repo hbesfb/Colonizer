@@ -12,6 +12,9 @@ import zmq
 import numpy as np
 from typing import Tuple
 import threading
+import logging
+
+log = logging.getLogger("hwlayer.client")
 
 # Use one shared ZMQ context for the whole process. Even if the app currently
 # runs with one thread, Flask/Gunicorn or libraries may create additional
@@ -19,8 +22,7 @@ import threading
 # multiple separate ZMQ contexts by accident.
 _context = zmq.Context.instance()
 
-
-# ZMQ sockets are NOT thread-safe; give each thread its own ZMQ socket. 
+# ZMQ sockets are not thread-safe; give each thread its own ZMQ socket.
 # Thread-local storage ensures each thread has a separate
 # REQ socket and avoids message ordering problems.
 _thread_local = threading.local()
@@ -39,6 +41,16 @@ def _resolve_address():
     else:
         raise ValueError(f"Invalid HARDWARE_ADDR={addr}, transport unknown")
 
+# resolve the separate status-socket address, mirroring
+# _resolve_address(). Falls back to IPC when not specified.
+def _resolve_status_address():
+    addr = os.environ.get("HARDWARE_STATUS_ADDR", "ipc:///tmp/settleplate_hw_status")
+    log.debug(f"STATUS ADDRESS = {addr}")
+    if re.match(r"^(ipc|tcp)://.+", addr):
+        return addr
+    else:
+        raise ValueError(f"Invalid HARDWARE_STATUS_ADDR={addr}, transport unknown")
+
 def _get_socket():
     """
     Return the ZMQ REQ socket for the current thread.
@@ -55,11 +67,27 @@ def _get_socket():
     if not hasattr(_thread_local, "socket") or _thread_local.socket is None:
         s = _context.socket(zmq.REQ)
         s.setsockopt(zmq.LINGER, 0)
-        s.RCVTIMEO = 5000 # ms
-        s.SNDTIMEO = 5000 # timeout for sending
+        s.RCVTIMEO = 35000 # ms -- must exceed real capture time (measured 11-26s)
+        s.SNDTIMEO = 5000   # ms -- send should be instant; if this timeout here means a broken socket
         s.connect(_resolve_address())
         _thread_local.socket = s
     return _thread_local.socket
+
+# separate socket for ready/storage, now backed by its own
+# thread+port on the Pi (see server.py) that's never blocked behind a
+# capture. Short timeout is appropriate again since there's no more
+# structural reason for these calls to be slow — a timeout here now
+# means the Pi really is unreachable/dead, not just busy.
+def _get_status_socket():
+    if not hasattr(_thread_local, "status_socket") or _thread_local.status_socket is None:
+        s = _context.socket(zmq.REQ)
+        s.setsockopt(zmq.LINGER, 0)
+        s.RCVTIMEO = 5000  # ms
+        s.SNDTIMEO = 5000  # ms
+        s.connect(_resolve_status_address())
+        _thread_local.status_socket = s
+    return _thread_local.status_socket
+
 
 def start_socket() -> bool:
    """Initialize the ZMQ REQ socket for the current thread."""
@@ -74,24 +102,17 @@ def capture_image(capture_settings={}) -> Tuple[bool, np.ndarray]:
     Request an image from the hardware server.
     Returns (success, image_or_error_message)
     """
-
-    socket = _get_socket()
-
-    # request image
-    request = capture_settings.copy()
-    request['CMD'] = 'capture'
-
     try:
-        # If the socket is stuck waiting for a reply (REQ state machine),
-        # POLLOUT will be 0. In that case, the socket can never send again.
-        # Reset it so the next send starts from a clean REQ state.
-        if socket.getsockopt(zmq.EVENTS) & zmq.POLLOUT == 0:
-            _thread_local.socket = None
-            socket = _get_socket()
+        # socket acquisition moved inside try so a bad
+        # HARDWARE_ADDR (ValueError from _resolve_address) is caught
+        # here instead of propagating as an uncaught exception to callers
+        socket = _get_socket()
 
-        # send request
+        # request image
+        request = capture_settings.copy()
+        request['CMD'] = 'capture'
+
         socket.send_json(request)
-
         # wait for data
         response = socket.recv_json()
         if 'error' in response:
@@ -102,37 +123,74 @@ def capture_image(capture_settings={}) -> Tuple[bool, np.ndarray]:
             image = image.reshape(response['shape'])
             return True, image
     except Exception as e:
-        _thread_local.socket = None # reset only this thread’s socket, not global 
+        try:
+            _thread_local.socket.close(linger=0)
+        except Exception:
+            pass
+        _thread_local.socket = None  # must still null it out, close() alone doesn't clear the cached ref
         return False, f"ZMQ error: {e}"
 
-def is_ready():
-    """ Check if hardware server is ready."""
-    socket = _get_socket()
-    request = {'CMD': 'ready'}
+def send(payload):
+    """
+    Send a JSON RPC command to the Pi hardware daemon and return (success, response_dict).
+    Supports multi-part messages when jpeg_bytes is included.
+    """
     try:
-        # prevent REQ/REP deadlock before sending
-        if socket.getsockopt(zmq.EVENTS) & zmq.POLLOUT == 0:
-            _thread_local.socket = None
-            socket = _get_socket()
+        socket = _get_socket()
+        payload = dict(payload)
 
+        #extract jpeg_bytes if present
+        jpeg_bytes = payload.pop('jpeg_bytes', None)
+
+        if jpeg_bytes is None:
+            socket.send_json(payload) # normal JSON-only RPC
+        else:
+            socket.send_json(payload, flags=zmq.SNDMORE) # send JSON metadata + JPEG bytes
+            socket.send(jpeg_bytes, copy=True)
+
+        # wait for reply
+        reply = socket.recv_json()
+
+        return True, reply
+
+    except Exception as e:
+        # reset only this thread’s socket
+        try:
+            _thread_local.socket.close(linger=0)
+        except Exception:
+            pass
+        _thread_local.socket = None
+        return False, {'msg': 'error', 'error': str(e)}
+
+def is_ready():
+    """
+    Check if hardware server is ready. Uses the dedicated status socket,
+    so it's answered immediately instead of queueing behind captures.
+    """
+    try:
+        socket = _get_status_socket()
+        request = {'CMD': 'ready'}
         socket.send_json(request)
         response = socket.recv_json()
         return response.get("msg", False)
     except Exception as e:
-        _thread_local.socket = None # reset only this thread’s socket, not global
+        try:
+            _thread_local.status_socket.close(linger=0)
+        except Exception:
+            pass
+        _thread_local.status_socket = None
         return False
 
 def pi_mounted_storage_ok():
-    socket = _get_socket()
+    socket = _get_status_socket()
     try:
-        # prevent REQ/REP deadlock before sending
-        if socket.getsockopt(zmq.EVENTS) & zmq.POLLOUT == 0:
-            _thread_local.socket = None
-            socket = _get_socket()
-
         socket.send_json({'CMD': 'storage'})
         response = socket.recv_json()
         return response.get("msg", False)
-    except:
-        _thread_local.socket = None
+    except Exception as e:
+        try:
+            _thread_local.status_socket.close(linger=0)
+        except Exception:
+            pass
+        _thread_local.status_socket = None
         return False
