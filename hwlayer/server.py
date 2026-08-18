@@ -93,10 +93,7 @@ def start_status_socket():
 
       while True:
          try:
-            #TODO: remove the 2 troubleshooting status logs
-            log.info("STATUS WAITING FOR REQUEST")
             request = status_socket.recv_json()
-            log.info(f"STATUS REQUEST: {request}")
             cmd = request.get('CMD')
 
             if cmd == 'ready':
@@ -154,7 +151,7 @@ def main():
    timeout = 5000 # ms
 
    # This dict will be used in comparison after it has been normalised by _norm()
-   prev_request = {} 
+   prev_request = {}
 
    while True:
       if socket.poll(timeout):
@@ -193,15 +190,17 @@ def main():
                socket.send_json({'msg': False, 'error': str(e)})
             continue
 
-         # if capturing array
+         # if capturing, use the lock for differnt operations that
+         # we dont want to run at the same time from 2 threads
+         # but also keep the lock as short as possible so it does not 
+         # become a bottleneck when other services need it
          if cmd == 'capture':
             # time capture
             t0 = time.time_ns()
 
             # check if settings changed
             if _norm(request) != _norm(prev_request):
-               # lock camera during config changes + capture,
-               # the only actual hardware-touching section of this branch
+               # lock while applying camera config changes
                with camera_lock:
                   camera.set_exposure(request['cam_exposure'])
                   camera.set_whitebalance(request['cam_wb'][0],request['cam_wb'][1])
@@ -214,19 +213,21 @@ def main():
 
             try:
                log.debug(request)
-               # lock illumination and capture together so LEDs cannot change mid-exposure
+               # lock when running illumination commands
                with camera_lock:
                   illumination.set_top(request['led_top'])
                   illumination.set_ring(request['led_ring'])
                   illumination.run()
-                  time.sleep(request['led_wait'])
+                  time.sleep(request['led_wait']) # let lighting settle before capture
+
+               # A Separate, short lock just for capturing. Kept minimal so
+               # the camera is only "locked" for the instant we actually read it.
+               with camera_lock:
                   image = camera.capture_array()
 
                #capture JPEG bytes for saving later
                #encode JPEG from array instead of calling capture_file()
                _, jpeg_bytes = cv2.imencode(".jpg", image)
-               global last_jpeg
-               last_jpeg = jpeg_bytes.tobytes()
 
                illumination.clear()
                response = {
@@ -248,6 +249,7 @@ def main():
                }
                socket.send_json(response)
                log.error(response['error'])
+            continue
 
          # support both new K8s client (multipart frames) AND old Pi client (JSON-embedded JPEG)
          # New K8s client sends JPEG in TWO frames:
@@ -260,8 +262,16 @@ def main():
             filename = request['filename']
             savepath = os.path.join(settings['general']['savepath'], filename)
 
+            # verify the resolved path is still inside savepath,even though the k8s side now sanitizes filenames.
+            # gaurds against a future caller (or old Pi-local client) skipping sanitization.
+            real_savepath = os.path.realpath(settings['general']['savepath'])
+            real_target = os.path.realpath(savepath)
+            if not real_target.startswith(real_savepath + os.sep):
+               socket.send_json({'msg': 'error', 'error': 'Invalid filename'})
+               continue
+
             try:
-            # request from k8s: Check whether client sent the JPEG in the second ZMQ message frame
+               # request from k8s: Check whether client sent the JPEG in the second ZMQ message frame
                try:
                   jpeg_bytes = socket.recv(copy=True)
                except Exception:
