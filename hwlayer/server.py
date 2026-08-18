@@ -29,7 +29,7 @@ _context = zmq.Context.instance()
 # Both the main loop (capture) and the new status thread (ready) touch
 # the camera object, and camera/libcamera libraries are generally not
 # thread-safe. Scope is kept tight around actual hardware calls only —
-# NOT around illumination/sleep/JPEG encoding — so a "ready" check can
+# around illumination/sleep/JPEG encoding — so a "ready" check can
 # never be stuck waiting for a full capture cycle, only for the brief
 # moment the lock is actually held.
 camera_lock = threading.Lock()
@@ -190,7 +190,7 @@ def main():
                socket.send_json({'msg': False, 'error': str(e)})
             continue
 
-         # if capturing, use the lock for differnt operations that
+         # if capturing, use the lock for different operations that
          # we dont want to run at the same time from 2 threads
          # but also keep the lock as short as possible so it does not 
          # become a bottleneck when other services need it
