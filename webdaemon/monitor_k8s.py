@@ -74,7 +74,7 @@ class K8sServiceMonitor(threading.Thread):
             sql_status = False
 
         # Pi online (ZMQ OK)
-        # (ZeroMQ round‑trip from the Kubernetes pod to the Raspberry Pi and back)
+        # (ZeroMQ round‑trip from the Kubernetes pod to the Raspberry Pi, and back)
         # ie in k8s client.py sends JSON to the Pi (socket.send_json({"CMD": "ready"})) and expects a JSON response {"msg": True/False} from the Pi
         try:
             zmq_ok = hwlayer.client.is_ready()

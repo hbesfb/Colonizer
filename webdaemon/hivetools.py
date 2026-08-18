@@ -33,7 +33,7 @@ def detect_cfu(img : np.ndarray):
    confidence = np.choose(label,thresholded[4:])
    detections = sv.Detections(xyxy.T,confidence=confidence,class_id=label)
    detections_nms = detections.with_nms(threshold=settings['hive']['iou_threshold'])
-   
+
    # print results
    labels = ['single', 'multi', 'bubble']
    cfu_arr = []
