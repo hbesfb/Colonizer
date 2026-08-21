@@ -1,5 +1,4 @@
 import os
-import multiprocessing
 
 # The enviroment sets config file to "kubernetes" in k8s or "production" on the Pi
 # if is not set in the enviroment, it defaults to "default"
