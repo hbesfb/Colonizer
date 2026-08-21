@@ -36,6 +36,15 @@
    stroke: greenyellow;
 }
 
+/* Styling for the live-drawing preview */
+.CFU-draw {
+  opacity: 100%;
+}
+
+.CFU-draw rect {
+  stroke: orange
+}
+
 .CFU:hover {
    opacity: 100%;
    transition: opacity 0.3s;
@@ -50,4 +59,16 @@
    visibility: visible;
    opacity: 100%;
    transition: opacity 0.3s, visibility 0.3s;
+}
+
+/* Force crosshair on the overlay AND everything inside it */
+#overlay.drawing-mode, 
+#overlay.drawing-mode * {
+  cursor: crosshair !important;
+}
+
+/* Force disable pointer events on existing CFUs AND their children (<rect>, <text>) */
+#overlay.drawing-mode .CFU,
+#overlay.drawing-mode .CFU * {
+  pointer-events: none !important;
 }

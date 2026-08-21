@@ -46,7 +46,8 @@ tr.table-subheader td{
 }
 
 .imageview {
-  width:100%;
+  height:100%;
+  margin:auto;
   aspect-ratio: 1;
   border-radius: 6px;
   background-color: black;  
@@ -91,6 +92,14 @@ tr.table-subheader td{
 
 .imageview.imageview-loading img {
   visibility: hidden;
+}
+
+#fullscreen-wrapper:fullscreen,
+#fullscreen-wrapper:-webkit-full-screen {
+  background-color: black;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 @font-face {

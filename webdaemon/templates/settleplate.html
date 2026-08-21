@@ -9,18 +9,33 @@
 	<script src="/static/hive/CFUdraw.js"></script>
 	{% if not readonly %}
 	<script src="/static/hive/CFUdetect.js"></script>
+	<script src="/static/hive/CFUmanual.js"></script>
 	{% endif %}
 	<script>
 		$(document).ready(function() {
 			// zoom in on image on click
-			$("#zoom").click(function () {
-				$("#imagemodal").modal('show');
-			});
+			$("#zoom").click(fullscreen);
 			$("#SPform").on("submit", save_cfu);
 			$('[data-toggle="tooltip"]').tooltip();
 			load_cfu();
 			threshold_high = {{ hive_settings['confidence_threshold_high'] }}
 		});
+		function fullscreen() {
+    		const wrapper = document.getElementById('fullscreen-wrapper');
+    		const icon = document.querySelector('#zoom i');
+
+    		if (!document.fullscreenElement) {
+        		// Enter fullscreen on the wrapper
+        		wrapper.requestFullscreen().catch(err => {
+	            console.warn(`Error attempting to enable fullscreen: ${err.message}`);
+        		});
+        		icon.classList.replace('fa-search-plus', 'fa-search-minus');
+    		} else {
+        		// Exit fullscreen
+        		document.exitFullscreen();
+        		icon.classList.replace('fa-search-minus', 'fa-search-plus');
+    		}
+		}
 		function save_cfu() {
 			$("#Colonies").val(cfu_export()); 
 		}
@@ -63,25 +78,20 @@
 	</div>
 	<div class="col mx-3">
 		<div class="row mb-3">
-			<div class="imageview imageview-overlay">
-				<img id="image" src="/images/{{settleplate.ID}}">
-				<svg viewBox="0 0 1 1" preserveAspectRatio="none" id="overlay"></svg>
-				<div class="btn-group">
-					<button id="zoom" type="button" class="btn btn-secondary"><i class="fa fa-search-plus"></i></button>
-					{% if not readonly %}
-					<button id="detect" type="button" class="btn btn-secondary" disabled="disabled"  data-toggle="tooltip" data-placement="bottom" title="AI count"><i class="fa fa-magic"></i></button>
-					{% endif %}
+			<div id="fullscreen-wrapper" style="width: 100%;">
+				<div class="imageview imageview-overlay">
+					<img id="image" src="/images/{{settleplate.ID}}">
+					<svg viewBox="0 0 1 1" preserveAspectRatio="none" id="overlay"></svg>
+					<div class="btn-group">
+						<button id="zoom" type="button" class="btn btn-secondary"><i class="fa fa-search-plus"></i></button>
+						{% if not readonly %}
+						<button id="detect" type="button" class="btn btn-secondary" disabled="disabled"  data-toggle="tooltip" data-placement="bottom" title="AI count"><i class="fa fa-magic"></i></button>
+						{% endif %}
+					</div>
 				</div>
 			</div>
 		</div>
 	</div>
 </div>
-<div id="imagemodal" class="modal">
-	<div class="modal-content">
-		<div class="modal-body">
-			<img src="/images/{{settleplate.ID}}" data-dismiss="modal" data-target="imagemodal" id="imagezoom"
-				style="width:100%;cursor:zoom-out">
-		</div>
-	</div>
-</div></form>
+</form>
 {% endblock %}
