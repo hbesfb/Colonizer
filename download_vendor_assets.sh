@@ -1,3 +1,7 @@
+# this file was an attempt to freeze files that will be used in the deployed image
+# it does not seem to work because the transit dependences keep changing
+# i suggest this to be fixed in another MR where we fix all the dockerfile stuff
+
 
 # remove existing to start with fresh
 rm -rf wheeldir wheeldir.tar wheeldir.tar.part-*
