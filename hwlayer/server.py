@@ -28,17 +28,32 @@ _context = zmq.Context.instance()
 # lock protecting all direct hardware access to `camera`.
 # Both the main loop (capture) and the new status thread (ready) touch
 # the camera object, and camera/libcamera libraries are generally not
-# thread-safe. Scope is kept tight around actual hardware calls only —
-# around illumination/sleep/JPEG encoding — so a "ready" check can
-# never be stuck waiting for a full capture cycle, only for the brief
-# moment the lock is actually held.
+# thread-safe. 
+# Scope is kept tight around actual hardware calls only (illumination/sleep/JPEG encoding)
+# In this way, a "ready" check will not be stuck waiting for a full capture cycle, 
+# It will wait only for the brief period during which camera access is
+# protected by the lock.
 camera_lock = threading.Lock()
+
 def _resolve_bind_address():
-   """ 
-      Determine whether to bind IPC (local Pi) or TCP (Kubernetes remote access). 
-      For TCP it binds to all network interfaces (ie the * tcp://*:{port}, 
-      meaning it will accept connections on the given port regardless of which 
-      interface they arrive on (eg wired ethernet, WiFi or 127.0.0.1)
+   """
+   Return the ZeroMQ bind address for the hardware command socket.
+
+   The transport is selected using the HARDWARE_TRANSPORT environment
+   variable:
+
+   - ipc: use a local Unix-domain socket for communication on the Pi.
+   - tcp: listen for network connections on HARDWARE_PORT.
+
+   When using TCP, the address is bound to all local network interfaces
+   (tcp://*:<port>) so clients may connect through any interface that can
+   reach the device (eg wired ethernet, WiFi or 127.0.0.1)
+
+   Returns:
+      str: A ZeroMQ bind address.
+
+   Raises:
+      ValueError: If HARDWARE_TRANSPORT contains an unsupported value.
    """
    transport = os.environ.get("HARDWARE_TRANSPORT", "ipc")
    if transport == "ipc":
@@ -97,8 +112,7 @@ def start_status_socket():
             cmd = request.get('CMD')
 
             if cmd == 'ready':
-               # lock held only for the actual hardware check, not for
-               # anything slow — this is the whole point of this thread
+               # lock held only for the actual hardware check
                with camera_lock:
                   if camera is not None:
                      camera.ready_cam()
