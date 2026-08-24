@@ -11,7 +11,6 @@ from hwlayer.illumination import illumination
 from hwlayer.picamera import PiHQCamera2
 from settings import settings
 import cv2
-import json
 
 log = logging.getLogger('Server')
 log.setLevel('DEBUG')
@@ -20,7 +19,6 @@ log.info("Starting server")
 # declare variables
 camera = None
 socket = None
-last_jpeg = None #store last captured JPEG bytes on the Pi
 
 # one shared context for all sockets
 _context = zmq.Context.instance()
@@ -88,7 +86,8 @@ def start_socket():
       socket = context.socket(zmq.REP)
       socket.bind(bind_addr)
    except Exception as e:
-      log.error('Could not create ZeroMQ socket')
+      log.error(f'Could not create ZeroMQ socket: {e}')
+      raise
 
 # dedicated thread + socket + loop for status commands.
 # Runs independently of the main loop, so `ready`/`storage` are answered
@@ -156,16 +155,12 @@ def start_illumination():
    illumination.set_status(True)
    illumination.run()
 
-# helper function that uses sorting to allow comparison of dicts in a deterministic way 
-def _norm(obj):
-    return json.dumps(obj, sort_keys=True)
-
 def main():
    # time to wait for request before doing housekeeping
    timeout = 5000 # ms
 
-   # This dict will be used in comparison after it has been normalised by _norm()
-   prev_request = {}
+   # None means no camera settings have yet been applied.
+   prev_request = None
 
    while True:
       if socket.poll(timeout):
@@ -217,7 +212,8 @@ def main():
             t0 = time.time_ns()
 
             # check if settings changed
-            if _norm(request) != _norm(prev_request):
+            # Only reconfigure camera if the requested settings have changed
+            if prev_request is None or request != prev_request:
                # lock while applying camera config changes
                with camera_lock:
                   camera.set_exposure(request['cam_exposure'])
@@ -226,8 +222,9 @@ def main():
                   camera.set_resolution(request['cam_resolution'])
                   camera.set_flip(request['cam_hflip'], request['cam_vflip'])
                   camera.set_rotation(request['cam_rotation'])
-               #store normalized version to ensure stable comparisons
-               prev_request = json.loads(_norm(request))
+               # Store a copy so later modifications to request do not affect the
+               # previously applied settings.
+               prev_request = request.copy()
 
             try:
                log.debug(request)
@@ -289,14 +286,12 @@ def main():
                continue
 
             try:
-               # request from k8s: Check whether client sent the JPEG in the second ZMQ message frame
-               try:
+               # New clients send JPEG as a second frame in a multipart message.
+               # Check whether client sent the JPEG in the second ZMQ message frame
+               if socket.getsockopt(zmq.RCVMORE):
                   jpeg_bytes = socket.recv(copy=True)
-               except Exception:
-                  jpeg_bytes = None
-
-               # Fallback(Assume request is old client that runs on the Pi): JSON-embedded bytes sent by old client
-               if jpeg_bytes is None:
+               else:
+                  # Fallback(Assume request is old client that runs on the Pi): JSON-embedded bytes sent by old client
                   jpeg_bytes = request.get('jpeg_bytes')
 
                if jpeg_bytes is None:
@@ -310,6 +305,10 @@ def main():
             except Exception as e:
                socket.send_json({'msg': 'error', 'error': str(e)})
             continue
+
+         # For any unknown command
+         socket.send_json({'msg': 'error', 'error': f'Unknown command: {cmd}'})
+         continue
 
       # camera.update() also touches hardware state, lock it too
       with camera_lock:
