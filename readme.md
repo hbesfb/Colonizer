@@ -28,9 +28,8 @@
 - User then places the plate into the automatic scanner and uses the colonixer UI to auto detect colony count on the plate
 - User then confirms/adjusts counts and saves to the db. Details captured are:
     - operator id (ie person scanning)
-    - colony count on the plate, image of plate and timestamp upon saving.
+    - colony count on the plate (must be >-1), image of plate and timestamp upon saving.
 A new DB row is created with the above details and same barcode as existed previously
-TODO test to see what happens if user adjusts counts to say -2 instead of a number greater than -1
 
 ## Deployment Modes
 
@@ -92,10 +91,9 @@ This mode is ideal when:
 - You want minimal dependencies on the Pi
 
 ### Installer for the Hardware Only Mode
-`Pi_running_only_hardware/install_hardware_only.sh`
+`Pi_files/Pi_running_only_hardware/install_all.sh`
 
 **key features**
-- Clones the repo into /app/Colonizer
 - Creates a minimal Python virtual environment
 - Installs only hardware‑specific dependencies
 - Installs Supervisor config for the hardware daemon
