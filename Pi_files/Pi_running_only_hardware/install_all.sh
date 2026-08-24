@@ -1,8 +1,14 @@
 #!/bin/bash
-# This is the master script that installs the Colonizer hardware node on a Raspberry Pi (Debian 13 /Pi 5). 
-# It calls the other scripts in this directory to perform the installation steps.
-# it should be run as root (sudo) to ensure that all steps can be completed successfully. ie
-#  `sudo -E bash <script_name>.sh` to preserve the environment variables
+
+# Master installer for the Colonizer hardware node on Raspberry Pi 
+#
+# Installation is performed in two stages:
+#   1. Python setup (virtual environment and dependencies)
+#   2. System setup (service user, Supervisor, permissions and runtime configuration)
+#
+# This script must be run as root, for example:
+#   sudo bash <script_name>.sh
+
 set -euo pipefail
 INSTALL_DIR="/app/Colonizer"
 

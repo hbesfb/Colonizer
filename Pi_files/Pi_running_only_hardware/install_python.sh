@@ -1,8 +1,9 @@
 #!/bin/bash
 
-# This script runs Python code inside the venv, as user colonizer, so that
-# import validation happens exactly the same way the daemon will run under Supervisor.
-
+# This script creates and populates the Python virtual environment required
+# by the Colonizer hardware node. It installs all Python dependencies into
+# the venv and prepares the runtime environment before Supervisor and the
+# service user are configured.
 set -euo pipefail
 
 INSTALL_DIR="/app/Colonizer"
