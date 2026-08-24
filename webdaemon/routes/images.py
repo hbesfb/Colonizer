@@ -1,11 +1,23 @@
-import os
+import re
 from datetime import datetime
 #from webdaemon import app
 from flask import Blueprint, current_app, render_template, request, session, jsonify, redirect, make_response, g
 import hwlayer.client
 from webdaemon.model import Settleplate
+from webdaemon.database import db
 from webdaemon.imagetools import *
 from settings import settings
+import uuid
+
+def _safe_filename_part(value: str, max_len: int = 64) -> str:
+	"""
+	Strip anything that isn't alphanumeric, dash, or underscore.
+	Prevents path characters (../, /, \\) from reaching the filename 
+	that will be sent to the Pi for saving.
+	"""
+	value = str(value)
+	value = re.sub(r'[^A-Za-z0-9_-]', '_', value)
+	return value[:max_len] or 'unknown_batch'
 
 blueprint = Blueprint("images",__name__,url_prefix="/images")
 
@@ -62,7 +74,7 @@ def live():
 @blueprint.route('/<int:image_id>', methods=['GET'])
 def get_image(image_id):
 	""" image_id is the primary key (ID) value (Settleplate.ID) in the DB for a comitted scan"""
-	sp = Settleplate.query.get(int(image_id)) #TODO deprecated in SQLAlchemy 2.x, use: sp = db.session.get(Settleplate, image_id)
+	sp = db.session.get(Settleplate,image_id) #old version (sp = Settleplate.query.get(int(image_id))) was deprecated in SQLAlchemy 2.x
 	if sp is None:
 		return redirect("/static/settleplate.svg")
 	elif sp.Image is None:
@@ -78,30 +90,35 @@ def save_image():
 	try:
 		data = request.get_json()
 
-		params = {
-			'user' : g.username,
-			'timestamp' : datetime.fromisoformat(session['image_timestamp']).strftime('%Y%m%d_%H%M%S'),
-			'batch_id' : data['batch']
-		}
-		filename = '{user}-{timestamp}-{batch_id}.jpg'.format(**params)
+		# now filename doesnot depend on batch or timestamp for uniqueness
+		batch_raw = data.get('batch') if data else None
 
-		config_file = os.environ.get('SETTLEPLATE_CONFIG', 'default')
-		is_k8s = (config_file == "kubernetes")
-		if is_k8s:
-			# ask the Pi via RPC to save the image to its local storage
-			success, response = hwlayer.client.send({
-				'CMD': 'save',
-				'filename': filename,
-				'jpeg_bytes': session['image_jpeg']
-			})
-			if not success or response.get('msg') != 'ok':
-				raise Exception(response.get('error', 'Pi failed to save image'))
-		else:
-			filepath = os.path.join(settings['general']['savepath'], filename)
-			with open(filepath,'wb') as f:
-				img_out = session['image_jpeg']
-				current_app.logger.info(f'User {g.username} saving image to: {filename} ({len(img_out)/1024} kB)')
-				f.write(img_out)
+		# only include a batch segment in filename if one was provided
+		batch_part = f"-{_safe_filename_part(batch_raw)}" if batch_raw else ""
+
+		# make suffix unique regardless of repeated saves that use the same session timestamp
+		unique_suffix = uuid.uuid4().hex[:8]
+
+		params = {
+			'user' : _safe_filename_part(g.username),
+			'timestamp' : datetime.fromisoformat(session['image_timestamp']).strftime('%Y%m%d_%H%M%S'),
+			'suffix' : unique_suffix,
+		}
+
+		filename = '{user}-{timestamp}-{suffix}{batch_part}.jpg'.format(
+			batch_part=batch_part, **params
+		)
+
+		# ask the Pi via RPC to save the image to its local storage
+		success, response = hwlayer.client.send({
+			'CMD': 'save',
+			'filename': filename,
+			'jpeg_bytes': session['image_jpeg']
+		})
+
+		if not success or response.get('msg') != 'ok':
+			raise Exception(response.get('error', 'Pi failed to save image'))
+
 	except Exception as error:
 		current_app.logger.error('Failed to write image to Pi local storage: %s'%error)
 
