@@ -56,6 +56,15 @@ $(document).ready(function() {
 
    // commit image to db on click
    $("#commit").click(function () {
+      // guard against negative counts before sending them to backend
+      var counts_val = $("#Counts").val();
+      if (counts_val === "" || isNaN(counts_val) || parseInt(counts_val, 10) < 0) {
+         $("#commit_ok").slideUp();
+         $("#commit_fail").html(`<strong>Error! </strong>Counts must be zero or a positive integer`);
+         $("#commit_fail").slideDown();
+         slideup_all();
+         return; // don't disable inputs or send the request
+      }
       $("#commit").attr("disabled", true);
       $("#Counts").attr('readonly', true);
       $("#commit").blur();
