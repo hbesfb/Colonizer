@@ -170,12 +170,16 @@ def main():
             continue
 
          if cmd == 'status':
-            illumination.set_status(request['led_status'])
-            illumination.run()
-            response = {
-               'msg' : 'ok'
-            }
-            socket.send_json(response)
+            try:
+               illumination.set_status(request['led_status'])
+               illumination.run()
+               socket.send_json({'msg': 'ok'})
+            except Exception as e:
+               log.error(f"Status command failed: {e}")
+               socket.send_json({
+                     'msg': 'error',
+                     'error': str(e)
+               })
             continue
 
          #for key, value in settings['camera'].items():
