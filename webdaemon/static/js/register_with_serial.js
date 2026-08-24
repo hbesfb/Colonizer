@@ -119,6 +119,10 @@ function process_input(data) {
 
                 // check if settleplate already registered, if so exit early
                 if(data.used && data.used > 0) {
+                    // still show what was scanned, even though it's rejected
+                    new_serial = data.plate_serial;
+                    new_full_barcode = data.plate_barcode;
+                    update_fields();
                     show($("#duplicate-plate"));
                     return;
                 } 
@@ -159,6 +163,9 @@ function process_input(data) {
             if("location" in data) {
                var handleLocation = function() {
                     if (location_exist(data["location"])) {
+                        // still show what was scanned, even though it's rejected
+                        new_location = data.location;
+                        update_fields();
                         show($("#duplicate-location"));
                     } else {
                         hide($("#duplicate-location"));
