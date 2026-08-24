@@ -16,10 +16,9 @@ import logging
 
 log = logging.getLogger("hwlayer.client")
 
-# Use one shared ZMQ context for the whole process. Even if the app currently
-# runs with one thread, Flask/Gunicorn or libraries may create additional
-# threads. Context.instance() is safe in all cases and avoids creating
-# multiple separate ZMQ contexts by accident.
+# Use one shared ZMQ context for the whole process. 
+# Context.instance() returns a shared singleton context and 
+# prevents accidental creation of multiple independent contexts.
 _context = zmq.Context.instance()
 
 # ZMQ sockets are not thread-safe; give each thread its own ZMQ socket.
@@ -103,9 +102,6 @@ def capture_image(capture_settings={}) -> Tuple[bool, np.ndarray]:
     Returns (success, image_or_error_message)
     """
     try:
-        # socket acquisition moved inside try so a bad
-        # HARDWARE_ADDR (ValueError from _resolve_address) is caught
-        # here instead of propagating as an uncaught exception to callers
         socket = _get_socket()
 
         # request image
@@ -127,7 +123,11 @@ def capture_image(capture_settings={}) -> Tuple[bool, np.ndarray]:
             _thread_local.socket.close(linger=0)
         except Exception:
             pass
-        _thread_local.socket = None  # must still null it out, close() alone doesn't clear the cached ref
+
+        # close() shuts down the socket, but the thread-local variable still points
+        # to the closed socket. Setting it to None forces _get_socket() to create a
+        # fresh socket on the next request.
+        _thread_local.socket = None
         return False, f"ZMQ error: {e}"
 
 def send(payload):

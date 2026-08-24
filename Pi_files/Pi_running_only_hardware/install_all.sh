@@ -22,4 +22,4 @@ bash "$INSTALL_DIR/Pi_running_only_hardware/install_system.sh"
 
 echo "Pi Installation complete."
 
-#Ignore errors on: lgpio (fails on Pi 5 because lgpio notifier cannot create .lgd-nfy*)
+#Ignore errors about lgpio (fails on Pi saying lgpio notifier cannot create .lgd-nfy*)
