@@ -1,11 +1,14 @@
 #!/bin/bash
 
-# This script handles system-level setup for the Colonizer hardware node on a Raspberry Pi
-# validate system deps
-# create user
-# add to gpio/video groups
-# install supervisor config
-# create data dirs
+# This script performs system-level configuration for the Colonizer hardware
+# node. It:
+#   - Installs and validates Supervisor
+#   - Creates the service account if required
+#   - Grants GPIO and camera access
+#   - Installs Supervisor configuration
+#   - Configures permissions and ownership
+#   - Creates required data directories
+#   - Starts and validates the Colonizer hardware service
 
 set -euo pipefail
 
@@ -76,10 +79,9 @@ echo "==> Stopping any running Supervisor instance before validation..."
 systemctl stop supervisor || true
 rm -f /run/colonizer-supervisor-web.sock
 
-# Avoid spawn error: kill any orphaned colonizer-hw process left over 
-# from a previous failed install, BEFORE we try to start anything new.
-# These can survive `systemctl stop supervisor` since supervisor stopping
-# doesn't guarantee its child was reaped, especially after a crash loop.
+# Kill any existing hwlayer.server processes before restarting Supervisor.
+# This prevents startup conflicts caused by stale or orphaned processes from
+# previous installations, crash loops, or failed service restarts.
 echo "==> Killing any orphaned colonizer-hw processes..."
 pkill -9 -f "hwlayer.server" || true
 
@@ -97,7 +99,9 @@ fi
 echo "==> Clearing old Colonizer logs..."
 rm -f /var/log/colonizer-hw*
 
-#  chown the install dir to the service before Supervisor is (re)started below.
+# Ensure the service user owns the installation directory before Supervisor
+# starts the application. This allows the service to access the virtual
+# environment, application files and logs without requiring root privileges.
 echo "==> Setting ownership of install directory (before starting Supervisor)..."
 chown -R "$SERVICE_USER":"$SERVICE_USER" "$INSTALL_DIR"
 
@@ -157,9 +161,13 @@ mkdir -p /mnt/data/Data/Colonizer
 
 echo "==> Setting ownership of install directory..."
 chown "$SERVICE_USER":"$SERVICE_USER" /mnt/data/Data/Colonizer # set dir owner
-chmod 750 /mnt/data/Data/Colonizer # set dir permissions # all can read images; only hw daemon can write
 
-# Fix known error from libcara by creating a directory and a yaml file as follows: 
+# Service user has full access; group has read/execute access; others have no access.
+chmod 750 /mnt/data/Data/Colonizer
+
+# Create a minimal libcamera user configuration file. libcamera
+# installation emits warnings and fails to locate a writable user
+# configuration unless this directory and file exist.
 echo "==> Ensuring libcamera config directory exists for colonizer user..."
 sudo mkdir -p /home/$SERVICE_USER/.config/libcamera
 echo "version: 1" | sudo tee /home/$SERVICE_USER/.config/libcamera/configuration.yaml >/dev/null
@@ -170,7 +178,8 @@ sudo mkdir -p /home/admin/.config/libcamera
 echo "version: 1" | sudo tee /home/admin/.config/libcamera/configuration.yaml >/dev/null
 sudo chown -R admin:admin /home/admin/.config/libcamera
 
-# restart colonizer-hw gets a clean start attempt.
+# Perform a final service restart now that all configuration,
+# permissions and runtime directories are in place.
 echo "==> Final restart of colonizer-hw now that setup is complete..."
 supervisorctl restart colonizer-hw || true
 sleep 2
