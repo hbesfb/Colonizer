@@ -10,7 +10,9 @@ CREATE TABLE IF NOT EXISTS "SETTLEPLATE" (
     "PlateSerial" VARCHAR(128),
     "Lot_no" VARCHAR(64),
     "Expires" DATE,
-    "Counts" INTEGER,
+    -- -1 is the only valid negative value ("pending scanning"). 
+    -- Any other negative Counts (e.g. -2) is invalid and should be rejected at the DB level.
+    "Counts" INTEGER CHECK ("Counts" >= -1),
     "Version" VARCHAR(32),
     "Location" VARCHAR(128),
     "Batch" VARCHAR(128),
