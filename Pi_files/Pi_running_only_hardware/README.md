@@ -47,7 +47,7 @@ After installation, the Pi will:
 ---
 
 ### Initial preparations before installation:
-Before running the installer script ensure the following files and directories exist on the Pi.
+Before running the installer script need files and the application root directory must exist on the Pi. How to ensure this:
 #### On the dev machine
 We will be copying over the needed files from the repository parent dir to a writable location on the Pi 
 - On hp06 run: 
