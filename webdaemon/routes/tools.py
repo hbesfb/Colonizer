@@ -9,43 +9,6 @@ from webdaemon.gs1_barcodeparser import parse_gs1
 NOT_COUNTED = -1
 WORKFLOW_STARTS_WITH_BATCH = settings['general'].get('workflow_starts_with_batch', True)
 
-# DB helpers
-#---------------------------------------------------------#
-def query_scan_count(barcode):
-	return (
-		db.session.query(Settleplate.ScanDate)
-		.filter(Settleplate.Barcode==barcode)
-		.count()
-	)
-
-def query_positive_plate(batch_name, workflow_starts_with_batch):
-	"""
-	Returns:
-		Legacy (batch-first):
-			None if no positive plate exists (Counts > 0)
-			True if a positive plate exists (Counts > 0)
-
-		GS1 (serial-first):
-			None if no plate exists
-			Settleplate row if plate exists
-	"""
-	if workflow_starts_with_batch: # batch-first legacy mode
-		row = (
-			db.session.query(Settleplate.ScanDate)
-			.filter(Settleplate.Batch.like(batch_name),
-					Settleplate.Counts > 0)
-			.first()
-		)
-		return True if row else None
-
-	# GS1 mode: return the actual row, not just a bolean
-	else:
-		return (
-			db.session.query(Settleplate)
-			.filter(Settleplate.Batch.like(batch_name))
-			.first()
-		)
-
 # Route
 #---------------------------------------------------------#
 
@@ -162,15 +125,16 @@ def apply_positive_test_logic(result):
 	Legacy (batch-first): A positive test exists only if there exists a plate with batch=<prefix+lot> AND Counts >0
 		- no_positive = True when no row with Counts > 0 exists.
 		- no_positive = False if a completed positive plate exists (i.e., colony count has been updated)
-	
+
 	GS1 (serial-first): A positive test exists if ANY plate with Batch=<prefix+lot> is found.
 		- Distinguishes between completed and pending positive plates:
-			- Counts > 0  means completed positive test (i.e., colonies have been updated)
-			- Counts == -1 means positive_pending = True (i.e., colonies yet to be updated)
+			- Counts == -1 means the positive test is pending (registered but colonies have not been counted).
+			- Counts >= 0 means the positive test has been counted and is no longer pending.
 
-		- no_positive = True when no positive-plate row exists at all
-		- no_positive = False when a positive-plate row exists (irrespective of completed (counts > 0) or pending (counts == -1))
+		- no_positive = True when no positive-plate row exists.
+		- no_positive = False when a positive-plate row exists (irrespective of whether counted (Counts>= 0) or pending (Counts== -1))
 		- positive_pending = True when row exists but Counts == NOT_COUNTED.
+		- positive_pending = False when row exists but Counts >= 0
 	"""
 	if 'lot' not in result or not settings['general'].get('positive_test_required', False):
 		return result
@@ -200,8 +164,9 @@ def apply_positive_test_logic(result):
 		return result
 	
 	# GS1 mode (serial-first):
-	# If a positive plate exists, distinguish between pending vs completed
-	# by setting positive_pending = True if the plate has not been counted yet
+	# A positive plate exists if a row was found.
+	# Counts == -1 means it is registered but not yet counted (therefore positive_pending == True)
+	# Counts >= 0 means it has been counted.
 	if exists:
 		result['positive_pending'] = positive_row.Counts == NOT_COUNTED
 	return result
@@ -236,6 +201,45 @@ def parse_location(data: str):
 	current_app.logger.warning(f"Invalid location barcode, input={data}")
 
 	return None, "Invalid location barcode" # parsing failed
+
+
+# DB helpers
+#---------------------------------------------------------#
+def query_scan_count(barcode):
+	return (
+		db.session.query(Settleplate.ScanDate)
+		.filter(Settleplate.Barcode == barcode)
+		.count()
+	)
+
+def query_positive_plate(batch_name, workflow_starts_with_batch):
+	"""
+	Returns:
+		Legacy (batch-first):
+			None if no positive plate exists (Counts > 0)
+			True if a positive plate exists (Counts > 0)
+
+		GS1 (serial-first):
+			None if no plate exists for the batch
+			Settleplate row if one plate exists
+	"""
+	if workflow_starts_with_batch: # batch-first legacy mode
+		row = (
+			db.session.query(Settleplate.ScanDate)
+			.filter(Settleplate.Batch.like(batch_name),
+					Settleplate.Counts > 0)
+			.first()
+		)
+		return True if row else None
+
+	# GS1 mode: return the actual row, not just a bolean
+	else:
+		return (
+			db.session.query(Settleplate)
+			.filter(Settleplate.Batch.like(batch_name))
+			.order_by(Settleplate.Counts.desc()) # Prefer counted plates (Counts >= 0) over pending (-1)
+			.first()
+		)
 
 # App hook: runs automatically each time
 #---------------------------------------------------------#
