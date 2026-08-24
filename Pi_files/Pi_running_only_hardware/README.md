@@ -23,7 +23,7 @@ This setup will install the following:
 The hardware daemon communicates with the Kubernetes application using ZeroMQ over `TCP`
 ---
 ### Prerequisites
-- Raspberry Pi running Debian GNU/Linux 13 (Trixie). This is whereColonizer hardware node will be setup
+- Raspberry Pi running Debian GNU/Linux 13 (Trixie). This is where Colonizer hardware node will be setup
 - A Raspberry Pi camera module supported by `picamera2`. This will be connected to the Pi CSI ribbon cable
 - Internet access on the Pi (to clone the repo and install packages)
 - SSH access to the Pi
