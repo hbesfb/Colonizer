@@ -100,6 +100,10 @@ def capture_image(capture_settings={}) -> Tuple[bool, np.ndarray]:
     """
     Request an image from the hardware server.
     Returns (success, image_or_error_message)
+
+    If anything goes wrong, throw away this thread's REQ socket. 
+    The next request (call to capture_image) will automatically create a clean replacement socket
+    at socket = _get_socket()
     """
     try:
         socket = _get_socket()
@@ -142,13 +146,20 @@ def send(payload):
         #extract jpeg_bytes if present
         jpeg_bytes = payload.pop('jpeg_bytes', None)
 
+        # If there is no image data to send eg if payload = { "CMD": "ready"}
         if jpeg_bytes is None:
             socket.send_json(payload) # normal JSON-only RPC
         else:
-            socket.send_json(payload, flags=zmq.SNDMORE) # send JSON metadata + JPEG bytes
-            socket.send(jpeg_bytes, copy=True)
+            # First frame of a multipart message. SNDMORE tells ZMQ that additional 
+            # frames belonging to the same message will be sent next.
+            socket.send_json(payload, flags=zmq.SNDMORE)
 
-        # wait for reply
+            # Second and final frame containing the raw JPEG bytes.
+            socket.send(jpeg_bytes, copy=True) # send the raw JPEG bytes.
+
+        # wait for reply from server.
+        # This blocks until server sends a reply ("ok", or "error")
+        # or times out if the server does not reply (within s.RCVTIMEO or s.RCVTIMEO, depending on the socket)
         reply = socket.recv_json()
 
         return True, reply
@@ -164,8 +175,18 @@ def send(payload):
 
 def is_ready():
     """
-    Check if hardware server is ready. Uses the dedicated status socket,
-    so it's answered immediately instead of queueing behind captures.
+    Returns a bolean that indicates if hardware server is ready.
+    Uses the dedicated status socket, so it's answered immediately 
+    instead of queueing behind captures.
+
+    Returns True if response = {"msg": True},
+    else it returns False if:
+        response = {"msg": False}
+        response = {"error": "camera unavailable"}
+        Comminicatin fails eg ZMQ error (exception part)
+    
+    Returning False simply means the Pi is not currently usable, 
+    either because it isn't ready or because we couldn't successfully verify that it is ready
     """
     try:
         socket = _get_status_socket()
@@ -182,12 +203,23 @@ def is_ready():
         return False
 
 def pi_mounted_storage_ok():
+    """
+    Check whether the server's configured storage location available and writable
+    by sendind a 'storage' request to the hardware daemon's dedicated status socket and returns
+    the daemon's response
+
+    Uses the dedicated status socket so the request is not delayed by
+    long-running image capture operations
+    """
+
+    # obtain the thread's dedicated REQ socket connected to the server's status endpoint.
     socket = _get_status_socket()
     try:
-        socket.send_json({'CMD': 'storage'})
-        response = socket.recv_json()
+        socket.send_json({'CMD': 'storage'}) # send a storage request to server
+        response = socket.recv_json() # wait for servers response or timeouts
         return response.get("msg", False)
     except Exception as e:
+        # in all other failures (eg ZMQ error, lost network connection)
         try:
             _thread_local.status_socket.close(linger=0)
         except Exception:
