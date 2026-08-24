@@ -242,9 +242,9 @@ function location_exist(location) {
 }
 
 function update_fields() {
-   $("#serial").val(new_serial);
-   $("#location").val(new_location);
-   $("#batch").val(new_batch);
+    $("#serial").val(new_serial);
+    $("#location").val(new_location);
+    $("#batch").val(new_batch);
 }
 
 function register_positive() {
@@ -336,7 +336,6 @@ function hide_warnings_synchronized() {
 
 }
 
-
 function show(el) {
     el.stop(true, true).slideDown();
 }
@@ -345,10 +344,11 @@ function hide(el) {
     el.stop(true, true).slideUp();
 }
 
-
 //Init
 $(document).ready(function() {
-   
+    //---------------------------------------------------------
+    // Barcode keyboard capture
+    //---------------------------------------------------------
    $(document).keypress(function(event) {
       var k = event.which || event.keyCode;
       var c = String.fromCharCode(k);
@@ -363,15 +363,21 @@ $(document).ready(function() {
       }
    });
 
-   $('#no-positive-link').on("click", register_positive);
-
-   // prevent submit on enter press
+    //---------------------------------------------------------
+    // Prevent accidental form submission on Enter
+    //---------------------------------------------------------
    $(window).keydown(function(event){
     if(event.keyCode == 13) {
         event.preventDefault();
         return false;
     }
    });
-   // Starting state
+
+    //  Positive test manual registration button
+     $('#no-positive-link').on("click", register_positive);
+
+    //---------------------------------------------------------
+    // Initialize state machine
+    //---------------------------------------------------------
    transition(STATE.SERIAL);
 });
