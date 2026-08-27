@@ -144,7 +144,6 @@ def start_status_socket():
    t.start()
    log.info("Status socket thread started")
 
-
 def start_camera():
    global camera
    log.info('Setting up camera')
