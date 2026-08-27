@@ -112,6 +112,8 @@ class Settings(FileSystemEventHandler):
 
 settings = Settings()
 
+# Note: this is not used by k8s deployed Colonizer, there we use AD authentication 
+# for the local admin we use local_admin_login in webdaemon/routes/users.py.
 def user_validator(username, password):
 	user_min = settings['general']['user_min']
 	user_max = settings['general']['user_max']
@@ -125,13 +127,28 @@ def user_validator(username, password):
 		return True, ''
 	else:
 		return False, 'Invalid username'
-	
-def get_secret(filename='secret.key'):
-	if os.path.exists(filename):
-		with open('secret.key', 'r') as f:
-			key = f.readline()
-	else:
-		key = secrets.token_hex(16)
-		with open('secret.key', 'w') as f:
-			f.write(key)
-	return key
+
+def get_secret():
+	"""
+	Retrieve or generate a stable secret key based on environment.
+	This key will be used to sign session cookies.
+	"""
+	config_file = os.environ.get('SETTLEPLATE_CONFIG', 'default')
+	is_k8s = (config_file == "kubernetes")
+
+	if is_k8s:
+		secret = os.environ.get('SESSION_COOKIE_SECRET_KEY')
+		if not secret:
+			raise RuntimeError("SESSION_COOKIE_SECRET_KEY not set — cannot start App in Kubernetes")
+		return secret
+
+	# Local dev: same filename/location as before
+	secret_file = os.path.join(os.path.dirname(__file__), 'secret.key')
+	if os.path.exists(secret_file):
+		with open(secret_file, 'r') as f:
+			return f.readline()
+
+	new_secret = secrets.token_hex(16)
+	with open(secret_file, 'w') as f:
+		f.write(new_secret)
+	return new_secret

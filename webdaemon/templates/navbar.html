@@ -61,9 +61,9 @@
 	</div>
 	<div class="navbar-collapse collapse">
 		<ul class="navbar-nav ml-auto">
-			<li class="nav-text status {{'status-online' if g.status['camera']}}" title="Camera" id="status_camera"><i class="fa fa-camera"></i></li>
+			<li class="nav-item status {{'status-online' if g.status['camera_zmq']}}" title="Pi ZMQ: Pi and Camera" id="status_camera_zmq"><i class="fa fa-camera"></i></li>
 			<li class="nav-item status {{'status-online' if g.status['sql']}}" title="SQL" id="status_sql"><i class="fa fa-database"></i></li>
-			<li class="nav-item status {{'status-online' if g.status['storage']}}" title="Filesystem" id="status_storage"><i class="fa fa-server"></i></li>
+			<li class="nav-item status {{'status-online' if g.status['storage']}}" title="Pi storage" id="status_storage"><i class="fa fa-server"></i></li>
 		</ul>
 	</div>
 </nav>

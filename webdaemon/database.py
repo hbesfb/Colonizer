@@ -1,27 +1,169 @@
+import traceback
+from sqlalchemy import text
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.engine import URL
 from settings import settings
 
 db = SQLAlchemy()
 
-def init_database(app):
+def init_database(app, is_k8s=False):
+	"""
+	Initialize the database connection.
+	Supports:
+	  - MSSQL (via FreeTDS/ODBC + pyodbc)
+	  - PostgreSQL (via psycopg2)
+	Uses config from settings['db'].
+	"""
 	global db
-	app.logger.info('Connecting to SQL database...')
-	config = 'db_test'
+
+	app.logger.info('Connecting to database...')
+
 	sql_info = settings['db']
-	#if (sql_info['driver'] == "SQLITE"):
-	#   app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///{filepath}'.format(**sql_info)
-	if (sql_info['driver'] in ["ODBC", "FreeTDS"]):
-		app.config['SQLALCHEMY_DATABASE_URI'] = 'mssql+pyodbc://{user}:{password}@{host}:{port}/{dbname}?driver={driver}'.format(**sql_info)
-	try:
-		db.init_app(app)
-	except:
-		app.logger.error("Could not initialize database")
+	db_type = sql_info.get('db_type', '').lower()
+	
+	#validate required keys
+	required_keys = ['host', 'port', 'dbname', 'user', 'password']
+	if db_type in ['mssql', 'sqlserver', 'postgres', 'postgresql']:
+		missing = [k for k in required_keys if k not in sql_info]
+		if missing:
+			raise ValueError(f"Missing required DB config keys: {missing}")
+
+	# ------------------------------------------------------------
+	# MSSQL (ODBC)
+	# ------------------------------------------------------------
+	if db_type in ['mssql', 'sqlserver']:
+		# Build ODBC string for MSSQL (e.g. using FreeTDS driver)
+		odbc_str = (
+			f"DRIVER={{{sql_info['driver']}}};"
+			f"SERVER={sql_info['host']},{sql_info['port']};"
+			f"DATABASE={sql_info['dbname']};"
+			f"UID={sql_info['user']};"
+			f"PWD={sql_info['password']};"
+			f"{sql_info.get('arg', '')}"
+		)
+
+		# Mask password in logs
+		safe_odbc = odbc_str.replace(sql_info['password'], "***")
+		app.logger.info(f"ODBC raw string (password masked): {safe_odbc}")
+
+		encoded = URL.create( "mssql+pyodbc", query={"odbc_connect": odbc_str})
+		app.config['SQLALCHEMY_DATABASE_URI'] = str(encoded)
+		app.logger.info("Using MSSQL database (ODBC driver / FreeTDS).")
+
+	# ------------------------------------------------------------
+	# PostgreSQL
+	# ------------------------------------------------------------
+	elif db_type in ['postgres', 'postgresql']:
+		# Build SQLAlchemy URI for PostgreSQL
+		uri = (
+			f"postgresql+psycopg2://{sql_info['user']}:{sql_info['password']}@"
+			f"{sql_info['host']}:{sql_info['port']}/{sql_info['dbname']}"
+			)
+		#Mask password in logs
+		safe_uri = str(uri).replace(sql_info['password'], "***")
+		app.logger.info(f"PostgreSQL URL (password masked): {safe_uri}")
+
+		app.config['SQLALCHEMY_DATABASE_URI'] = uri
+		app.logger.info("Using PostgreSQL database (psycopg2 driver).")
+
+		try:
+			# Initialize SQLAlchemy to check if configuration is ok (ie correct URL, driver)
+			db.init_app(app)
+		except Exception as e:
+			app.logger.error(f"Could not initialize PostgreSQL database: {e}")
+			app.logger.error(f"Exception type: {type(e).__name__}")
+			app.logger.error(f"Full traceback: {traceback.format_exc()}")
+			raise
+		
+		# Verify that the database is reachable
+		try:
+			with app.app_context():
+				db.session.execute(text("SELECT 1"))
+			app.logger.info("PostgreSQL database connection initialized successfully.")
+		except Exception as e:
+			app.logger.critical(f"PostgreSQL connection test failed: {e}")
+			app.logger.error(f"Full traceback: {traceback.format_exc()}")
+			raise
+
+	else:
+		raise ValueError(f"Unsupported database type: {db_type}") # eg typos and empty string "" should error
+
+	# Try initializing for all DB types except PostgreSQL (which has been handled above)
+	if db_type not in ['postgres', 'postgresql']:
+		try:
+			db.init_app(app)
+		except Exception as e:
+			app.logger.error(f"Could not initialize database: {str(e)}")
+			app.logger.error(f"Exception type: {type(e).__name__}")
+			app.logger.error(f"Full traceback: {traceback.format_exc()}")
+			raise
+		
+	# ------------------------------------------------------------
+	# Kubernetes-specific PostgreSQL diagnostics
+	# (currently intended for PostgreSQL deployments)
+	# ------------------------------------------------------------
+	# The enviroment sets config file to "kubernetes" in k8s or "production" on the Pi
+	# if is not set in the enviroment, it defaults to "default"
+	if is_k8s:
+		try:
+			# Test the database connection within app context
+			with app.app_context():
+				# Test 1: Check if database engine is available
+				try:
+					engine = db.engine # db.get_engine() is deprecated in SQLAlchemy 2.x,
+					safe_engine_url = str(engine.url).replace(sql_info['password'], "***")
+					app.logger.info(f"Database engine available: {safe_engine_url}")
+				except Exception as e:
+					app.logger.error(f"Database engine not available: {e}")
+					raise
+			
+				# Test 2: Attempt a simple database query
+				try: # Get postgreSQL version
+					result = db.session.execute(text('SELECT version()')).scalar()
+					app.logger.info(f"Database connection successful. PostgreSQL version: {result}")
+				except Exception as e:
+					app.logger.error(f"Database connection test failed: {e}")
+					raise
+			
+				# Test 3: Test transaction capability
+				try:
+					db.session.execute(text('SELECT 1'))
+					db.session.commit()
+					app.logger.info("Database transaction test successful.")
+				except Exception as e:
+					app.logger.error(f"Database transaction test failed: {e}")
+					db.session.rollback()
+					raise
+
+			app.logger.info('Database connection initialized and tested successfully (k3s).')
+		
+		except Exception as e:
+			app.logger.error(f"Database initialization failed: {str(e)}")
+			app.logger.error(f"Exception type: {type(e).__name__}")
+			app.logger.error(f"Full traceback: {traceback.format_exc()}")
+		
+			# Log connection details for debugging (without password)
+			app.logger.error(f"Connection details - Host: {sql_info['host']}, Port: {sql_info['port']}, "
+						f"Database: {sql_info['dbname']}, User: {sql_info['user']}")
+			raise	
 
 def create_database(app):
-	from webdaemon.model import Settleplate
-	with app.app_context():
-		db.create_all()
 
+	"""
+	Create all SQLAlchemy-managed tables if they do not already exist.
+	
+	This operation is idempotent
+	"""
+	with app.app_context():
+		try:
+			db.create_all()
+			app.logger.info("Database tables created/verified successfully.")
+		except Exception as e:
+			app.logger.error(f"Database creation failed: {e}")
+			raise
+
+# This is not used anywhere, leaving it in code in case it was a legacy utility
+# # Not used by the application at runtime.
 def create_database_cmd():
 	from webdaemon.model import Settleplate
 	from sqlalchemy.dialects import mssql

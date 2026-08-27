@@ -10,7 +10,9 @@
             </div>
             <input type="text" class="form-control" id="user" name="username" autocomplete="off">
          </div>
-         <div class="input-group form-group" id="form-pwd" style="display:none;">
+
+         <!-- Password field made visible. We expect HVIKT user and password -->
+         <div class="input-group form-group" id="form-pwd">
             <div class="input-group-prepend">
                <label class="input-group-text" style="width: 90px;">Password</label>
             </div>
@@ -32,18 +34,11 @@
 {{ super() }}
 <script>
    $(document).ready(function() {
-      $("#user").keydown(function (event) {
-         // slide down password prompt if admin user, and set cursor to password
-         if ($("#user").val() == 'admin') {
-            $("#form-pwd").slideDown();
-            if (event.keyCode == 13) {
-               event.preventDefault();
-               $("#pwd").focus();
-            }
-         }
-         // remove "user:" from barcode reader
-         else if ($("#user").val() == 'user:') {
-            $("#user").val('')
+      // Enter key in username field moves focus to password field
+      $("#user").keydown(function(event) {
+         if (event.keyCode == 13) {
+            event.preventDefault();
+            $("#pwd").focus();
          }
       });
    });

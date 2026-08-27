@@ -1,4 +1,5 @@
 .idea
+.env
 .vscode
 __pycache__
 install/etc/.smbcredentials
@@ -10,12 +11,11 @@ venv
 secret.key
 config/*
 !config/default.json
+!config/kubernetes.json
 sass
-webdaemon/static/fontawesome
-webdaemon/static/bootstrap
-webdaemon/static/tensorflow
-webdaemon/static/jsoneditor
 webdaemon/static/css/bootstrap_themed.css.map
 webdaemon/static/css/bootstrap_themed.css
 webdaemon/static/2021-08-17_-_8_Bit_Nostalgia_-_www.FesliyanStudios.com.mp3
 webdaemon/static/fonts/joystix_monospace.otf
+wheeldir.zip
+wheeldir.zip.part-*

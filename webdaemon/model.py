@@ -10,6 +10,11 @@ from webdaemon.version import __version__
 # ------------------------------------------------------
 class Settleplate(db.Model):
 	__tablename__ = 'SETTLEPLATE'
+	# ensure Counts are never negative when scanning
+	# useful if we ever call db.create_all() as is the case in create_database(app)
+	__table_args__ = (
+		db.CheckConstraint('"Counts" >= -1', name='chk_counts_min'),
+	)
 	ID = db.Column(db.Integer, primary_key=True)
 	Username = db.Column(db.Unicode(32))
 	ScanDate = db.Column(db.DateTime)
