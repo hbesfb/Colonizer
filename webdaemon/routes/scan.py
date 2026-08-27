@@ -3,6 +3,7 @@ from flask import Blueprint, current_app, render_template, request, jsonify, ses
 from webdaemon.model import Settleplate, SettleplateForm
 from webdaemon.database import db
 from settings import settings
+from sqlalchemy.exc import IntegrityError
 
 blueprint = Blueprint("scan",__name__,url_prefix="/settleplate")
 
@@ -51,7 +52,11 @@ def scan():
 		sp.Counts = int(counts_raw)
 	# catch wrong values (ValueError eg "abc") and wrong types (TypeError eg list (int([])) or dict (int({})) )
 	except (ValueError, TypeError):
-		return jsonify({'committed': False, 'error': 'counts must be an integer'})
+		return jsonify({'committed': False, 'error': 'counts must be an integer greater than -1'})
+
+	# Reject negative counts from UI
+	if sp.Counts < 0:
+		return jsonify({'committed': False, 'error': 'Counts must be zero or a positive integer'})
 
 	sp.Location = plateinfo.Location
 	sp.Batch = plateinfo.Batch
@@ -62,6 +67,11 @@ def scan():
 	try:
 		db.session.add(sp)
 		db.session.commit()
+	# Return error if a DB constraint blocks this specific write
+	except IntegrityError as e:
+		db.session.rollback()
+		current_app.logger.error('DB Integrity error! Failed to write scan to DB: %s' % str(e))
+		return jsonify({'committed': False, 'error': 'This count could not be saved (invalid Count value)'})
 	except Exception as e:
 		db.session.rollback()
 		current_app.logger.error('Failed to write to DB: %s'%str(e))
