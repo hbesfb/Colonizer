@@ -5,15 +5,14 @@
 {% endblock %}
 {% block scripts %}
 	{{ super() }}
-	<script src="/static/tensorflow/tf.min.js"></script>
 	<script src="/static/js/scan.js"></script>
 	<script src="/static/js/imageoverlay.js"></script>
 	<script src="/static/hive/CFUdraw.js"></script>
 	<script src="/static/hive/CFUdetect.js"></script>
 	<script src="/static/hive/CFUmanual.js"></script>
-	{% if autocount %}
 	<script>
 		$(document).ready(function() {
+			{% if autocount %}
 			$("#image").on('load', function() {
 				if ($(this).attr("src") == image_src) {
 					cfu_detect();
@@ -21,10 +20,10 @@
 					$("#commit").trigger("focus");
 				}
 			});
+			{% endif %}
 			threshold_high = {{ hive_settings['confidence_threshold_high'] }}
 		});
 	</script>
-	{% endif %}
 {% endblock %}
 {% block page_content %}
 <div class="row">

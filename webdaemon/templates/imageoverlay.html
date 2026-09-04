@@ -1,6 +1,6 @@
 <div id="fullscreen-wrapper" style="width: 100%;">
    <div class="imageview imageview-overlay">
-      <img id="image" src="/images/{{settleplate.ID}}">
+      <img id="image" src="{% if settleplate.ID %}/images/{{settleplate.ID}}{% endif %}">
       <svg viewBox="0 0 1 1" preserveAspectRatio="none" id="overlay"></svg>
       <div class="btn-group">
          <button id="zoom" type="button" class="btn btn-secondary"><i class="fa fa-search-plus"></i></button>
