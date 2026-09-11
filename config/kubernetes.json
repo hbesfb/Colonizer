@@ -41,10 +41,6 @@
       "workflow_starts_with_batch": false
    },
    "users": {
-      "admin": "admin"
-   },
-   "authsrv": {
-      "url": "https://authsrv.staging.hbesfb.net/login"
    },
    "hive": {
       "confidence_threshold_low": 0.2,

@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 #from webdaemon import app
 from flask import Blueprint, current_app, render_template, request, redirect,session, url_for, g
 from settings import settings
@@ -6,20 +7,31 @@ import requests
 
 blueprint = Blueprint("users",__name__)
 
+# Auth service URL, supplied via env var in k8s
+AUTHSRV_URL = os.environ.get('AUTHSRV_URL')
+
+# Local admin account, supplied via env vars (k8s Secret) — no config-file fallback
+ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
+
 # new function replacing user_validator
 def authsrv_login(username, password):
 	"""
 	Authenticate against internal sfb service authsrv
 	Returns (True, data) on success, (False, error_message) on failure.
 	"""
+	if not AUTHSRV_URL:
+		current_app.logger.error("AUTHSRV_URL is not configured")
+		return False, "Auth service is not configured"
+
 	try:
 		response = requests.post(
-			settings['authsrv']['url'],
+			AUTHSRV_URL,
 			json={"username": username, "password": password},
 			timeout=5
 		)
 
-		# Wrong credentials → 401 with JSON error
+		# Wrong credentials give 401 with JSON error
 		if response.status_code != 200:
 			try:
 				err = response.json().get("message", "Login failed")
@@ -40,13 +52,17 @@ def authsrv_login(username, password):
 def local_admin_login(username, password):
 	"""
 	Authenticate the local admin account password against
-	settings['general']['adminpwd'], this matches the original user_validator behavior.
+	ADMIN_USERNAME/ADMIN_PASSWORD, this matches the original user_validator behavior.
 	Returns (True, {}) on success, (False, error_message) on failure.
 	"""
-	if password == settings['general']['adminpwd']:
+	if not ADMIN_USERNAME or not ADMIN_PASSWORD:
+		current_app.logger.error("ADMIN_USERNAME/ADMIN_PASSWORD is not configured")
+		return False, "Local admin login is not configured"
+
+	if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
 		return True, {}
 	else:
-		return False, 'Wrong password for user admin'
+		return False, 'Wrong credentials for admin'
 
 # login check
 @blueprint.before_app_request
@@ -77,7 +93,7 @@ def login():
 		password = request.form['password']
 
 		# Local admin account bypasses authsrv entirely
-		if username == 'admin':
+		if ADMIN_USERNAME and username == ADMIN_USERNAME:
 			valid, result = local_admin_login(username, password)
 		else:
 			valid, result = authsrv_login(username, password)
