@@ -3,8 +3,15 @@ import secrets
 import json
 import re
 from threading import Timer
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEvent, FileSystemEventHandler
+# use try-except in at import in case watchdog is not installed
+# (as is the case in k8s)
+try:
+	from watchdog.observers import Observer
+	from watchdog.events import FileSystemEvent, FileSystemEventHandler
+except ImportError:
+	Observer = None
+	FileSystemEvent = object
+	FileSystemEventHandler = object
 
 class Settings(FileSystemEventHandler):
 	def __init__(self):
@@ -12,12 +19,17 @@ class Settings(FileSystemEventHandler):
 		self._listeners = []
 		self._changed = False
 		self._logger = None
-		# observer for config file changes
-		self._observer = Observer()
-		self._observer.start()
-		# timer to reload config on change
-		self._reloader = None
+		# observer for config file changes — Disable watchdog for Kubernetes
+		config_file = os.environ.get('SETTLEPLATE_CONFIG', 'default')
+		is_k8s = (config_file == "kubernetes")
 		self._reload_delay = 0.2
+
+		# Only start watchdog if not k8s and watchdog is installed
+		if not is_k8s and Observer is not None:
+			self._observer = Observer()
+			self._observer.start()
+		else:
+			self._observer = None
 
 	def init(self, filename: str, logger = None):
 		if logger is not None:
@@ -34,9 +46,10 @@ class Settings(FileSystemEventHandler):
 
 	def set_path(self, filepath: str):
 		self._filepath = os.path.realpath(filepath)
-		# monitor file for changes
-		self._observer.unschedule_all()
-		self._observer.schedule(self, path=os.path.dirname(self._filepath))
+		# monitor file for changes - scheduling disabled for k8s
+		if self._observer:
+			self._observer.unschedule_all()
+			self._observer.schedule(self, path=os.path.dirname(self._filepath))
 
 	@property
 	def data(self):
@@ -87,12 +100,18 @@ class Settings(FileSystemEventHandler):
 
 	def save(self):
 		# do not trigger event on this change
-		self._observer.stop()
+		# make save() safe (ie ....)
+		if self._observer:
+			self._observer.stop()
 		with open(self._filepath,'w') as f:
 			json.dump(self._data, f, indent=3)
-		self._observer.start()
+		if self._observer:
+			self._observer.start()
 	
 	def on_modified(self, event: FileSystemEvent) -> None:
+		# Disable reload events for k8s
+		if not self._observer:
+			return
 		if event.src_path != self._filepath:
 			return
 		if type(self._reloader) is Timer:

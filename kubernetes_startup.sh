@@ -17,21 +17,29 @@ then
 	error "non k8s configuration $SETTLEPLATE_CONFIG detected. This script works only for k8s. exiting..."
 fi
 
-# ---------------- Verify Redis is reachable ----------------
-# In k3s, Redis runs as a sidecar (another container in same pod)
-log "waiting for redis..."
+# ---------------- Verify Valkey (the Redis-protocol backend in K8s) is reachable ----------------
+# In k3s, Valkey runs as (separate deployment?/operator?)
+# In Kubernetes, we ALWAYS use Valkey
+HOST="${VALKEY_HOST:-valkey}"
+PORT="${VALKEY_PORT:-6379}"
+log "waiting for valkey..."
+
+valkey_ready=false
 for i in {1..10}; do
 	# Capture both stdout and stderr
-	output=$(redis-cli -h localhost ping 2>&1)
-
-	if [ "$output" = "PONG" ]; then
-		log "redis is ready and says: $output"
+	if (echo > /dev/tcp/"$HOST"/"$PORT") >/dev/null 2>&1; then
+		log "valkey port is open"
+		valkey_ready=true
 		break
 	fi
-	log "redis not ready (error: $output), retrying..."
+	log "valkey not ready retrying ($i/10)..."
 	sleep 1
 done
 
+# Fail hard if valkey is not ready
+if [ "$valkey_ready" != true ]; then
+	error "valkey never became reachable after 10 attempts"
+fi
 # ---------------- PostgreSQL preparations ----------------
 # wait for PostgreSQL to become reachable before Gunicorn starts.
 log "Waiting for PostgreSQL at ${DB_HOST:-postgres-service}:${DB_PORT:-5432}..."

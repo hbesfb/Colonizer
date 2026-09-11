@@ -38,10 +38,10 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 # ------------------------------------------------------
-# Redis Connection
+# Valkey/Redis Connection
 # ------------------------------------------------------
 def create_redis_client(host, port, password=None):
-	"""Create and test a Redis client connection."""
+	"""Create and test a Redis-protocol client (Valkey or Redis)."""
 	client = Redis(
 		host=host,
 		port=port,
@@ -57,12 +57,20 @@ def create_redis_client(host, port, password=None):
 	client.ping()
 	return client
 
-# Redis connection setup
-redis_host = os.environ.get('REDIS_HOST', 'localhost')
-redis_port = int(os.environ.get('REDIS_PORT', '6379'))
-redis_password = os.environ.get('REDIS_PASSWORD', None)
+# Environment-based backend selection
+if is_k8s:
+	valkey_host = os.environ.get('VALKEY_HOST', 'valkey') 
+	valkey_port = int(os.environ.get('VALKEY_PORT', '6379'))
+	valkey_password = os.environ.get('VALKEY_PASSWORD', None)
 
-app.logger.info(f'Connecting to Redis at {redis_host}:{redis_port}')
+else:
+	# Local dev still uses Redis
+	valkey_host = os.environ.get('REDIS_HOST', 'localhost')
+	valkey_port = int(os.environ.get('REDIS_PORT', '6379'))
+	valkey_password = os.environ.get('REDIS_PASSWORD', None)
+
+app.logger.info(f'Connecting to Valkey at {valkey_host}:{valkey_port}')
+
 
 # Retry loop for Redis connection
 MAX_RETRIES = 10
@@ -71,30 +79,30 @@ retry_delay = 1
 redis_client = None
 for attempt in range(1, MAX_RETRIES + 1):
 	try:
-		redis_client = create_redis_client(redis_host, redis_port, redis_password)
-		app.logger.info(f"Redis connection successful on attempt {attempt}")
+		redis_client = create_redis_client(valkey_host, valkey_port, valkey_password)
+		app.logger.info(f"Redis/Valkey connection successful on attempt {attempt}")
 		break
 	except Exception as e:
-		app.logger.warning(f"Redis connection failed (attempt {attempt}/{MAX_RETRIES}): {e}")
+		app.logger.warning(f"Redis/Valkey connection failed (attempt {attempt}/{MAX_RETRIES}): {e}")
 		time.sleep(retry_delay)
 
-# If still no Redis after retries → handle based on environment
+# If still no Redis after retries; handle based on environment
 if redis_client is None:
 	if is_k8s: #Explicit fatal failure in Kubernetes 
-		app.logger.critical("Redis unavailable in Kubernetes after retries — cannot start")
+		app.logger.critical("Valkey unavailable in Kubernetes — cannot start")
 		raise SystemExit(1)
 	else:
-		# Local fallback
+		# Local fallback to Redis
 		app.logger.warning("Retrying fallback to local Redis at localhost:6379")
 		try:
 			redis_client = create_redis_client("localhost", 6379)
 			app.logger.info("Fallback Redis connection successful")
-			redis_host, redis_port = "localhost", 6379 # update final host/port used
+			valkey_host, valkey_port = "localhost", 6379 # update final host/port used
 		except Exception as e:
 			app.logger.critical(f"Local Redis connection failed: {e}")
 			raise SystemExit(1)
 
-app.logger.info(f"Final Redis connection in use: {redis_host}:{redis_port}")
+app.logger.info(f"Final Redis/Valkey connection in use: {valkey_host}:{valkey_port}")
 
 # ------------------------------------------------------
 # Session Configuration

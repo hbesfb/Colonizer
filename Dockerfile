@@ -96,7 +96,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	python3=3.11.2-1+b1 \
 	python3-venv=3.11.2-1+b1 \
 	libpq5=15.19-0+deb12u1 \
-	redis-tools=5:7.0.15-1~deb12u6 \
 	postgresql-client=15+248+deb12u1 \
 	fish=3.6.0-3.1+deb12u1 \
 	sudo=1.9.13p3-1+deb12u2 \

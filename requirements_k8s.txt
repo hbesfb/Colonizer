@@ -18,5 +18,6 @@ supervision==0.25.1
 
 Flask_WTF==1.2.1
 pyzmq==26.0.3
-redis==5.1.0 # this is the python redis client - not the server
-watchdog==5.0.3 # used in settings.py to trigger load() when the set config file (./config/<filename>.json) changes
+
+# Colonizer connects to Valkey via Redis protocol
+redis==5.1.0 # this is the python redis client - not the server. Flask session requires it
