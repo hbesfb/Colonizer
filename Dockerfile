@@ -1,131 +1,111 @@
-###############################################
-# Stage 1 — Builder
-###############################################
-FROM debian:bookworm-slim@sha256:b4aa902587c2e61ce789849cb54c332b0400fe27b1ee33af4669e1f7e7c3e22f AS builder
 
-ARG APP_USER=colonizer
-ENV DEBIAN_FRONTEND=noninteractive \
-	APP_HOME=/app/Colonizer \
+###############################################
+# Stage 1 — Build Python dependencies + assets
+###############################################
+FROM python:3.11-slim-bookworm AS builder
+
+ARG APP_HOME=/app/Colonizer
+
+ENV APP_HOME=${APP_HOME} \
 	PYTHONDONTWRITEBYTECODE=1 \
 	PYTHONUNBUFFERED=1
 
-WORKDIR $APP_HOME
+WORKDIR ${APP_HOME}
 
-ARG SNAPSHOT=20260612T000000Z
-RUN printf '%s\n' \
-	"deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/${SNAPSHOT}/ bookworm main" \
-	"deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/${SNAPSHOT}/ bookworm-updates main" \
-	"deb [check-valid-until=no] https://snapshot.debian.org/archive/debian-security/${SNAPSHOT}/ bookworm-security main" \
-	> /etc/apt/sources.list
-
-# Build-time dependencies
+# Build-time dependencies only
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	python3=3.11.2-1+b1 \
-	python3-venv=3.11.2-1+b1 \
-	python3-dev=3.11.2-1+b1 \
-	python3-pip=23.0.1+dfsg-1 \
 	build-essential=12.9 \
-	gcc=4:12.2.0-3 \
 	libpq-dev=15.19-0+deb12u1 \
-	unzip=6.0-28 \
+	curl=7.88.1-10+deb12u15 \
+	unzip=6.0-28+deb12u1 \
 	sassc=3.6.1+20201027-2+b1 \
-	libgl1=1.6.0-1 \
-	libglib2.0-0=2.74.6-2+deb12u9 \
 	&& rm -rf /var/lib/apt/lists/*
 
-# Copy dependencies
+# Create virtual environment
+RUN python3 -m venv ${APP_HOME}/venv
+
+# Install Python dependencies
 COPY requirements_k8s.txt .
-COPY wheeldir.tar.part-* .
 
-# concatenate all parts into one TAR, extract and remove TARs
-RUN cat wheeldir.tar.part-* > wheeldir.tar \
-	&& rm wheeldir.tar.part-* \
-	&& tar -xf wheeldir.tar \
-	&& rm wheeldir.tar
+RUN ${APP_HOME}/venv/bin/pip install \
+		--no-cache-dir \
+		-r requirements_k8s.txt
 
-# Create python venv and install packages in wheel dir as pinned in req. file
-RUN python3 -m venv $APP_HOME/venv \
-	&& $APP_HOME/venv/bin/pip install --no-index --find-links=$APP_HOME/wheeldir -r requirements_k8s.txt \
-	&& rm -rf $APP_HOME/wheeldir
+# Copy application files
+COPY config/kubernetes.json ./config/
+COPY migrations/initial_tables_k8s.sql ./migrations/
+COPY hwlayer/client.py ./hwlayer/
+COPY models ./models
+COPY webdaemon ./webdaemon
+COPY gunicorn_config.py kubernetes_startup.sh settings.py ./
 
-# Copy source
-COPY . .
+# Bootstrap assets
+WORKDIR ${APP_HOME}/webdaemon/static/bootstrap
 
-# unzip and cleanup frontend assets
-WORKDIR $APP_HOME/webdaemon/static/bootstrap
-RUN unzip -q v4.6.2.zip \
-	&& cp -r bootstrap-4.6.2/dist/* ./ \
-	&& cp -r bootstrap-4.6.2/scss ./ \
-	&& rm -rf bootstrap-4.6.2 v4.6.2.zip
+RUN curl -fsSL \
+		https://github.com/twbs/bootstrap/archive/v4.6.2.zip \
+		-o /tmp/bootstrap.zip \
+	&& unzip -q /tmp/bootstrap.zip -d /tmp \
+	&& cp -r /tmp/bootstrap-4.6.2/dist/* ./ \
+	&& mkdir -p scss \
+	&& cp -r /tmp/bootstrap-4.6.2/scss/* scss/ \
+	&& rm -rf /tmp/bootstrap-4.6.2 /tmp/bootstrap.zip
 
-WORKDIR $APP_HOME/webdaemon/static/fontawesome
-RUN unzip -oq fontawesome-free-5.15.4-web.zip \
-	&& cp -r fontawesome-free-5.15.4-web/* ./ \
-	&& rm -rf fontawesome-free-5.15.4-web fontawesome-free-5.15.4-web.zip
+# FontAwesome assets
+WORKDIR ${APP_HOME}/webdaemon/static/fontawesome
+
+RUN curl -fsSL \
+		https://use.fontawesome.com/releases/v5.15.4/fontawesome-free-5.15.4-web.zip \
+		-o /tmp/fontawesome.zip \
+	&& unzip -q /tmp/fontawesome.zip -d /tmp \
+	&& cp -r /tmp/fontawesome-free-5.15.4-web/* ./ \
+	&& rm -rf /tmp/fontawesome-free-5.15.4-web /tmp/fontawesome.zip
 
 # Compile SCSS
-WORKDIR $APP_HOME/webdaemon/static
+WORKDIR ${APP_HOME}/webdaemon/static
+
 RUN if [ -f scss/bs_theme.scss ]; then \
 		sassc scss/bs_theme.scss css/bootstrap_themed.css; \
 	fi
 
+
 ###############################################
 # Stage 2 — Runtime
 ###############################################
-FROM debian:bookworm-slim@sha256:b4aa902587c2e61ce789849cb54c332b0400fe27b1ee33af4669e1f7e7c3e22f AS runtime
+FROM python:3.11-slim-bookworm AS runtime
 
 ARG APP_USER=colonizer
-ENV DEBIAN_FRONTEND=noninteractive \
-	APP_HOME=/app/Colonizer \
-	PATH="/app/Colonizer/venv/bin:$PATH" \
+ARG APP_HOME=/app/Colonizer
+
+ENV APP_HOME=${APP_HOME} \
+	PATH="${APP_HOME}/venv/bin:$PATH" \
 	PYTHONDONTWRITEBYTECODE=1 \
 	PYTHONUNBUFFERED=1
 
-WORKDIR $APP_HOME
+WORKDIR ${APP_HOME}
 
-ARG SNAPSHOT=20260612T000000Z
-RUN printf '%s\n' \
-	"deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/${SNAPSHOT}/ bookworm main" \
-	"deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/${SNAPSHOT}/ bookworm-updates main" \
-	"deb [check-valid-until=no] https://snapshot.debian.org/archive/debian-security/${SNAPSHOT}/ bookworm-security main" \
-	> /etc/apt/sources.list
-
-# Runtime dependencies
-# Important todo: remove redis-tools when we move to valkey
+# Runtime dependencies - add later if needed
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	python3=3.11.2-1+b1 \
-	python3-venv=3.11.2-1+b1 \
-	libpq5=15.19-0+deb12u1 \
-	postgresql-client=15+248+deb12u1 \
-	fish=3.6.0-3.1+deb12u1 \
-	sudo=1.9.13p3-1+deb12u2 \
 	libgl1=1.6.0-1 \
 	libglib2.0-0=2.74.6-2+deb12u9 \
-	curl=7.88.1-10+deb12u15 \
 	&& rm -rf /var/lib/apt/lists/*
+	# add later if needed: libpq5=15.19-0+deb12u1 \
 
-# Copy app + venv from builder
-COPY --from=builder /app/Colonizer /app/Colonizer
+# Copy application and Python virtual environment
+COPY --from=builder ${APP_HOME} ${APP_HOME}
 
-# Create user
-RUN useradd -m -s /usr/bin/fish ${APP_USER} && \
-	mkdir -p /home/${APP_USER}/.config/fish
-
-# Ensure Matplotlib can write its cache directory to remove "permission denied" warnings in logs
-RUN mkdir -p /home/${APP_USER}/.config/matplotlib && \
-	chown -R ${APP_USER}:${APP_USER} /home/${APP_USER}/.config
-
-# Permissions
-RUN chown -R ${APP_USER}:${APP_USER} $APP_HOME && \
-	chmod -R 750 $APP_HOME && \
-	mkdir -p /app/Colonizer/run /var/log/colonizer && \
-	chown -R ${APP_USER}:www-data /app/Colonizer/run && \
-	chmod 770 /app/Colonizer/run && \
-	chown -R ${APP_USER}:${APP_USER} /var/log/colonizer && \
-	chmod 755 /var/log/colonizer
-
-# Make startup script executable
-RUN chmod +x "$APP_HOME/kubernetes_startup.sh"
+# Create application user and required directories
+RUN useradd -m -s /usr/sbin/nologin ${APP_USER} && \
+	mkdir -p \
+		"${APP_HOME}/run" \
+		"/var/log/colonizer" \
+		"/home/${APP_USER}/.config/matplotlib" && \
+	chown -R ${APP_USER}:${APP_USER} \
+		"${APP_HOME}" \
+		"/home/${APP_USER}/.config" \
+		"/var/log/colonizer" && \
+	chmod -R 750 "${APP_HOME}" && \
+	chmod +x "${APP_HOME}/kubernetes_startup.sh"
 
 USER ${APP_USER}
 
