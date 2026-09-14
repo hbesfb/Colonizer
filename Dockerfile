@@ -42,6 +42,7 @@ COPY gunicorn_config.py kubernetes_startup.sh settings.py ./
 # Bootstrap assets
 WORKDIR ${APP_HOME}/webdaemon/static/bootstrap
 
+# using -fsSL (fail loudly on HTTP errors, stay quiet otherwise, and follow redirects)
 RUN curl -fsSL \
 		https://github.com/twbs/bootstrap/archive/v4.6.2.zip \
 		-o /tmp/bootstrap.zip \
@@ -60,6 +61,20 @@ RUN curl -fsSL \
 	&& unzip -q /tmp/fontawesome.zip -d /tmp \
 	&& cp -r /tmp/fontawesome-free-5.15.4-web/* ./ \
 	&& rm -rf /tmp/fontawesome-free-5.15.4-web /tmp/fontawesome.zip
+
+# JSONEditor assets
+WORKDIR ${APP_HOME}/webdaemon/static/jsoneditor
+
+RUN curl -fsSL \
+		https://registry.npmjs.org/jsoneditor/-/jsoneditor-10.4.3.tgz \
+		-o /tmp/jsoneditor.tgz \
+	&& tar -xzf /tmp/jsoneditor.tgz -C /tmp \
+	&& mkdir -p img \
+	&& cp /tmp/package/dist/jsoneditor.min.js ./ \
+	&& cp /tmp/package/dist/jsoneditor.map ./ \
+	&& cp /tmp/package/dist/jsoneditor.min.css ./ \
+	&& cp /tmp/package/dist/img/jsoneditor-icons.svg ./img/ \
+	&& rm -rf /tmp/package /tmp/jsoneditor.tgz
 
 # Compile SCSS
 WORKDIR ${APP_HOME}/webdaemon/static
