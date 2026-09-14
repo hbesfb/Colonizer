@@ -1,6 +1,6 @@
 #!/bin/bash
 # script to start app in k8s, will be called in Dockerfile
-# 
+#
 set -euo pipefail # exit if any error occurs
 
 # ---------------- Logging helpers ----------------
@@ -38,26 +38,53 @@ done
 
 # Fail hard if valkey is not ready
 if [ "$valkey_ready" != true ]; then
-	error "valkey never became reachable after 10 attempts"
+	error "valkey never became reachable after ($i/10) retries"
 fi
 # ---------------- PostgreSQL preparations ----------------
 # wait for PostgreSQL to become reachable before Gunicorn starts.
-log "Waiting for PostgreSQL at ${DB_HOST:-postgres-service}:${DB_PORT:-5432}..."
-if ! timeout 30 bash -c "until pg_isready -h ${DB_HOST:-postgres-service} -p ${DB_PORT:-5432} >/dev/null 2>&1; do sleep 2; done"; then
-	error "PostgreSQL not available"
+log "Waiting for PostgreSQL at ${DB_HOST}:${DB_PORT}..."
+
+postgres_ready=false
+for i in $(seq 1 10); do
+	if (echo > /dev/tcp/"$DB_HOST"/"$DB_PORT") >/dev/null 2>&1; then
+		postgres_ready=true
+		break
+	fi
+	log "PostgreSQL not ready yet after ($i/10) retries..."
+	sleep 2
+done
+
+if [ "$postgres_ready" != true ]; then
+	error "PostgreSQL still not available after waiting"
 fi
 
-# create SETTLEPLATE table if it doesn't exist
+# ---------------- Run migrations: Create SETTLEPLATE table if it doesn't exist (Python psycopg2 migration) ----------------
 log "Ensuring SETTLEPLATE table exists..."
 
-if PGPASSWORD="${DB_PASSWORD}" \
-	psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" \
-		-f migrations/initial_tables_k8s.sql; then
-	log "SETTLEPLATE table verified or created successfully"
-else
-	error "Failed to create or verify SETTLEPLATE table"
-fi
+python3 - <<EOF
+import psycopg2
+import sys
 
+try:
+	conn = psycopg2.connect(
+		host="${DB_HOST}",
+		port=${DB_PORT},
+		user="${DB_USER}",
+		password="${DB_PASSWORD}",
+		dbname="${DB_NAME}",
+	)
+	cur = conn.cursor()
+	with open("migrations/initial_tables_k8s.sql") as f:
+		cur.execute(f.read())
+	conn.commit()
+	cur.close()
+	conn.close()
+except Exception as e:
+	print("Migration failed:", e)
+	sys.exit(1)
+EOF
+
+log "SETTLEPLATE table verified or created successfully"
 # ---------------- Insert test data ----------------
 # uncomment if you want test data inserted
 # log "Adding some test data..."
