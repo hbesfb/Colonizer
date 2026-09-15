@@ -18,14 +18,13 @@ then
 fi
 
 # ---------------- Verify Valkey (the Redis-protocol backend in K8s) is reachable ----------------
-# In k3s, Valkey runs as (separate deployment?/operator?)
 # In Kubernetes, we ALWAYS use Valkey
 HOST="${VALKEY_HOST:-valkey}"
 PORT="${VALKEY_PORT:-6379}"
 log "waiting for valkey..."
 
 valkey_ready=false
-for i in {1..10}; do
+for i in $(seq 1 10); do
 	# Capture both stdout and stderr
 	if (echo > /dev/tcp/"$HOST"/"$PORT") >/dev/null 2>&1; then
 		log "valkey port is open"
@@ -61,30 +60,55 @@ fi
 # ---------------- Run migrations: Create SETTLEPLATE table if it doesn't exist (Python psycopg2 migration) ----------------
 log "Ensuring SETTLEPLATE table exists..."
 
-python3 - <<EOF
+python3 - <<'EOF'
 import psycopg2
 import sys
+import time
+import os
+
+MAX_RETRIES = 5
+RETRY_DELAY = 2  # seconds; delay grows linearly: 2s, 4s, 6s ...
+
+conn = None
+last_err = None
+
+for attempt in range(1, MAX_RETRIES + 1):
+	try:
+		conn = psycopg2.connect(
+			host=os.environ["DB_HOST"],
+			port=os.environ["DB_PORT"],
+			user=os.environ["DB_USER"],
+			password=os.environ["DB_PASSWORD"],
+			dbname=os.environ["DB_NAME"],
+			connect_timeout=5, # fail fast if Postgres doesn't respond in 5s
+		)
+		break
+	except Exception as e:
+		last_err = e
+		print(f"Postgres connect attempt {attempt}/{MAX_RETRIES} failed: {e}")
+		if attempt < MAX_RETRIES:
+			time.sleep(RETRY_DELAY * attempt) # backoff before next attempt
+
+if conn is None:
+	print(f"Migration failed: could not connect to Postgres after {MAX_RETRIES} attempts: {last_err}")
+	sys.exit(1)
 
 try:
-	conn = psycopg2.connect(
-		host="${DB_HOST}",
-		port=${DB_PORT},
-		user="${DB_USER}",
-		password="${DB_PASSWORD}",
-		dbname="${DB_NAME}",
-	)
 	cur = conn.cursor()
 	with open("migrations/initial_tables_k8s.sql") as f:
 		cur.execute(f.read())
 	conn.commit()
 	cur.close()
-	conn.close()
 except Exception as e:
 	print("Migration failed:", e)
+	conn.rollback()
 	sys.exit(1)
+finally:
+	conn.close()
 EOF
 
 log "SETTLEPLATE table verified or created successfully"
+
 # ---------------- Insert test data ----------------
 # uncomment if you want test data inserted
 # log "Adding some test data..."

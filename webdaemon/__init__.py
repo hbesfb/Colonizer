@@ -84,7 +84,8 @@ for attempt in range(1, MAX_RETRIES + 1):
 		break
 	except Exception as e:
 		app.logger.warning(f"Redis/Valkey connection failed (attempt {attempt}/{MAX_RETRIES}): {e}")
-		time.sleep(retry_delay)
+		if attempt < MAX_RETRIES:
+			time.sleep(retry_delay)
 
 # If still no Redis after retries; handle based on environment
 if redis_client is None:
@@ -130,7 +131,8 @@ else:
 	app.logger.info("Session cookies set for local dev (SameSite=Strict, Secure=False, HttpOnly=True)")
 
 #initialize sessions ensuring app uses the same tested Redis connection
-#(In k8s Redis runs in same Pod as Colonizer, so we can use localhost)
+# In Kubernetes, Valkey is reached using VALKEY_HOST.
+# Defaults to the Kubernetes service name "valkey".
 app.config['SESSION_TYPE'] = 'redis'
 app.config['SESSION_REDIS'] = redis_client
 Session(app)
