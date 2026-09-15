@@ -76,6 +76,17 @@ RUN curl -fsSL \
 	&& cp /tmp/package/dist/img/jsoneditor-icons.svg ./img/ \
 	&& rm -rf /tmp/package /tmp/jsoneditor.tgz
 
+# TensorFlow.js assets
+WORKDIR ${APP_HOME}/webdaemon/static/tensorflow
+
+RUN mkdir -p . \
+	&& curl -fsSL \
+		https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.9.0/dist/tf.min.js \
+		-o tf.min.js \
+	&& curl -fsSL \
+		https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.9.0/dist/tf.min.js.map \
+		-o tf.min.js.map
+
 # Compile SCSS
 WORKDIR ${APP_HOME}/webdaemon/static
 
