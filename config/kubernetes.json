@@ -10,9 +10,6 @@
       "table": "SETTLEPLATE"
    },
    "regex": {
-      "user": [
-         "^user:(?P<user>.+)$"
-      ],
       "batch": [
          "^(?P<batch>[A-Za-z]{3,5}\\d{7})$",
          "^(?P<batch>[A-Za-z]{3,5}\\d{8}-\\d)$",
@@ -28,7 +25,6 @@
       ]
    },
    "general": {
-      "adminpwd": "admin",
       "user_min": 4,
       "user_max": 8,
       "timeout": 3600,
@@ -40,10 +36,10 @@
       "testserver": false,
       "positive_test_required": true,
       "positive_test_location": "PositiveTest",
-      "positive_test_prefix": "POS"
+      "positive_test_prefix": "POS",
+      "workflow_starts_with_batch": false
    },
    "users": {
-      "admin": "admin"
    },
    "hive": {
       "confidence_threshold_low": 0.2,
@@ -63,8 +59,8 @@
          "led_wait": 0.7,
          "crop_auto" : "none",
          "crop_mask" : false,
-         "crop_mask_cx": 0.506,
-         "crop_mask_cy": 0.498,
+         "crop_mask_cx": 0.485,
+         "crop_mask_cy": 0.490,
          "crop_mask_cr": 0.434,
          "crop_drawonly" : false,
          "crop_canny_t1": 32,
@@ -77,6 +73,22 @@
          "led_ring": true,
          "crop_mask": true,
          "crop_mask_cr": 0.434
+      },
+      "_settleplate_test": {
+         "cam_exposure": 150000,
+         "led_ring": true,
+         "crop_mask": true,
+         "crop_mask_cr": 0.434,
+         "crop_drawonly": true,
+         "histogram": true
+      },
+      "_settleplate_test2": {
+         "cam_exposure": 100000,
+         "led_ring": true,
+         "crop_mask": true,
+         "crop_mask_cr": 0.434,
+         "crop_drawonly": true,
+         "histogram": true
       },
       "plate": {
          "cam_exposure": 50000,
