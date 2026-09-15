@@ -58,6 +58,7 @@ We will be copying over the needed files from the repository parent dir to a wri
 	# copy files while excluding unneeded
 	rsync -avz --exclude='config/default.json' config admin@plateleser.medtek.hbe.med.nvsl.no:/home/admin/Pi_files
 	rsync -avz --exclude='hwlayer/client.py' hwlayer admin@plateleser.medtek.hbe.med.nvsl.no:/home/admin/Pi_files
+	```
 
 #### On the Pi
 - SSh to the Pi: `admin@plateleser.medtek.hbe.med.nvsl.no`
