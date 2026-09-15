@@ -25,7 +25,6 @@
       ]
    },
    "general": {
-      "adminpwd": "admin",
       "user_min": 4,
       "user_max": 8,
       "timeout": 3600,
