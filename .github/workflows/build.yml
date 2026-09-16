@@ -1,7 +1,7 @@
 name: Build and Push Container # Name of this github Actions workflow
 
 on:
-  workflow_dispatch: # Allows manual triggering from the GitHub Actions UI
+  workflow_dispatch: # Allows manual triggering from the GitHub Actions UI but only if this defintion exists on the default branch
   push:
     branches:
     - master # Any push to master triggers a build
