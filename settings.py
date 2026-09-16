@@ -3,8 +3,15 @@ import secrets
 import json
 import re
 from threading import Timer
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEvent, FileSystemEventHandler
+# use try-except in at import in case watchdog is not installed
+# (as is the case in k8s)
+try:
+	from watchdog.observers import Observer
+	from watchdog.events import FileSystemEvent, FileSystemEventHandler
+except ImportError:
+	Observer = None
+	FileSystemEvent = object
+	FileSystemEventHandler = object
 
 class Settings(FileSystemEventHandler):
 	def __init__(self):
@@ -12,12 +19,17 @@ class Settings(FileSystemEventHandler):
 		self._listeners = []
 		self._changed = False
 		self._logger = None
-		# observer for config file changes
-		self._observer = Observer()
-		self._observer.start()
-		# timer to reload config on change
-		self._reloader = None
+		# observer for config file changes — Disable watchdog for Kubernetes
+		config_file = os.environ.get('SETTLEPLATE_CONFIG', 'default')
+		is_k8s = (config_file == "kubernetes")
 		self._reload_delay = 0.2
+
+		# Only start watchdog if not k8s and watchdog is installed
+		if not is_k8s and Observer is not None:
+			self._observer = Observer()
+			self._observer.start()
+		else:
+			self._observer = None
 
 	def init(self, filename: str, logger = None):
 		if logger is not None:
@@ -34,9 +46,10 @@ class Settings(FileSystemEventHandler):
 
 	def set_path(self, filepath: str):
 		self._filepath = os.path.realpath(filepath)
-		# monitor file for changes
-		self._observer.unschedule_all()
-		self._observer.schedule(self, path=os.path.dirname(self._filepath))
+		# monitor file for changes - scheduling disabled for k8s
+		if self._observer:
+			self._observer.unschedule_all()
+			self._observer.schedule(self, path=os.path.dirname(self._filepath))
 
 	@property
 	def data(self):
@@ -87,12 +100,18 @@ class Settings(FileSystemEventHandler):
 
 	def save(self):
 		# do not trigger event on this change
-		self._observer.stop()
+		# make save() safe (ie ....)
+		if self._observer:
+			self._observer.stop()
 		with open(self._filepath,'w') as f:
 			json.dump(self._data, f, indent=3)
-		self._observer.start()
+		if self._observer:
+			self._observer.start()
 	
 	def on_modified(self, event: FileSystemEvent) -> None:
+		# Disable reload events for k8s
+		if not self._observer:
+			return
 		if event.src_path != self._filepath:
 			return
 		if type(self._reloader) is Timer:
@@ -112,6 +131,8 @@ class Settings(FileSystemEventHandler):
 
 settings = Settings()
 
+# Note: this is not used by k8s deployed Colonizer, there we use AD authentication 
+# for the local admin we use local_admin_login in webdaemon/routes/users.py.
 def user_validator(username, password):
 	user_min = settings['general']['user_min']
 	user_max = settings['general']['user_max']
@@ -125,13 +146,28 @@ def user_validator(username, password):
 		return True, ''
 	else:
 		return False, 'Invalid username'
-	
-def get_secret(filename='secret.key'):
-	if os.path.exists(filename):
-		with open('secret.key', 'r') as f:
-			key = f.readline()
-	else:
-		key = secrets.token_hex(16)
-		with open('secret.key', 'w') as f:
-			f.write(key)
-	return key
+
+def get_secret():
+	"""
+	Retrieve or generate a stable secret key based on environment.
+	This key will be used to sign session cookies.
+	"""
+	config_file = os.environ.get('SETTLEPLATE_CONFIG', 'default')
+	is_k8s = (config_file == "kubernetes")
+
+	if is_k8s:
+		secret = os.environ.get('SESSION_COOKIE_SECRET_KEY')
+		if not secret:
+			raise RuntimeError("SESSION_COOKIE_SECRET_KEY not set — cannot start App in Kubernetes")
+		return secret
+
+	# Local dev: same filename/location as before
+	secret_file = os.path.join(os.path.dirname(__file__), 'secret.key')
+	if os.path.exists(secret_file):
+		with open(secret_file, 'r') as f:
+			return f.readline()
+
+	new_secret = secrets.token_hex(16)
+	with open(secret_file, 'w') as f:
+		f.write(new_secret)
+	return new_secret

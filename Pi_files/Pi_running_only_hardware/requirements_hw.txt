@@ -1,0 +1,8 @@
+pyzmq==27.1.0
+picamera2==0.3.36
+numpy==2.5.1
+adafruit-circuitpython-neopixel-spi==1.0.16
+watchdog==6.0.0
+# optional/unncessary but takes away the Error/Warning messages from matplotlib and types-seaborn
+#matplotlib
+#pandas-stubs

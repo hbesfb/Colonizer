@@ -1,5 +1,4 @@
 import os
-import board
 from threading import Thread, Event, Timer
 from abc import ABC, abstractmethod
 from settings import settings
@@ -84,6 +83,15 @@ class IlluminationNeopixel(Illumination):
 		self._thread = None
 		self._thread_stop = Event()
 		self._busy = False
+
+		# Import board inside the neopixel class instead of at the top of the file. The config file
+		# defines illumination_type, which selects either "gpio" or "neopixel". When the active mode
+		# is "gpio" (as in the current configuration), neopixel hardware is not used. If we import board
+		# at the top of the file it would still make Blinka try to access SPI/GPIO hardware for neopixels even
+		# though the service is running in GPIO mode. This unnecessary early hardware initialization
+		# can interfere with the hardware daemon (e.g., device-busy errors). Delaying the import
+		# ensures neopixel hardware is only initialized when illumination_type="neopixel".
+		import board
 
 		# Create NeoPixel object with appropriate configuration.
 		from neopixel_spi import NeoPixel_SPI

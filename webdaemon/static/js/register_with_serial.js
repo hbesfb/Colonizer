@@ -119,6 +119,10 @@ function process_input(data) {
 
                 // check if settleplate already registered, if so exit early
                 if(data.used && data.used > 0) {
+                    // still show what was scanned, even though it's rejected
+                    new_serial = data.plate_serial;
+                    new_full_barcode = data.plate_barcode;
+                    update_fields();
                     show($("#duplicate-plate"));
                     return;
                 } 
@@ -159,6 +163,9 @@ function process_input(data) {
             if("location" in data) {
                var handleLocation = function() {
                     if (location_exist(data["location"])) {
+                        // still show what was scanned, even though it's rejected
+                        new_location = data.location;
+                        update_fields();
                         show($("#duplicate-location"));
                     } else {
                         hide($("#duplicate-location"));
@@ -235,9 +242,9 @@ function location_exist(location) {
 }
 
 function update_fields() {
-   $("#serial").val(new_serial);
-   $("#location").val(new_location);
-   $("#batch").val(new_batch);
+    $("#serial").val(new_serial);
+    $("#location").val(new_location);
+    $("#batch").val(new_batch);
 }
 
 function register_positive() {
@@ -329,7 +336,6 @@ function hide_warnings_synchronized() {
 
 }
 
-
 function show(el) {
     el.stop(true, true).slideDown();
 }
@@ -338,10 +344,11 @@ function hide(el) {
     el.stop(true, true).slideUp();
 }
 
-
 //Init
 $(document).ready(function() {
-   
+    //---------------------------------------------------------
+    // Barcode keyboard capture
+    //---------------------------------------------------------
    $(document).keypress(function(event) {
       var k = event.which || event.keyCode;
       var c = String.fromCharCode(k);
@@ -356,15 +363,21 @@ $(document).ready(function() {
       }
    });
 
-   $('#no-positive-link').on("click", register_positive);
-
-   // prevent submit on enter press
+    //---------------------------------------------------------
+    // Prevent accidental form submission on Enter
+    //---------------------------------------------------------
    $(window).keydown(function(event){
     if(event.keyCode == 13) {
         event.preventDefault();
         return false;
     }
    });
-   // Starting state
+
+    //  Positive test manual registration button
+     $('#no-positive-link').on("click", register_positive);
+
+    //---------------------------------------------------------
+    // Initialize state machine
+    //---------------------------------------------------------
    transition(STATE.SERIAL);
 });

@@ -1,0 +1,62 @@
+name: Build and Push Container # Name of this github Actions workflow
+
+on:
+  workflow_dispatch: # Allows manual triggering from the GitHub Actions UI but only if this defintion exists on the default branch
+  push:
+    branches:
+    - master # Any push to master triggers a build
+    tags:
+    - '*.*.*' # Any push of a semvar tag (ie matching X.Y.Z)  triggers a build (e.g., 1.0.0, 2.3.7, etc.)
+
+# Job defintion
+jobs:
+  build:
+    name: Build Image # A single job named Build Image, running on a GitHub‑hosted Ubuntu runner (VM).
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # allows checkout
+      packages: write # reequired to be able to push to GHCR
+
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v4 # Pulls repo into the runner so Docker can build it.
+
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0 # Runs Hadolint against the Dockerfile to prevent bad Dockerfile pattern
+
+      # Generate image metadata (all the tags the image should have)
+      # eg If we push tag 1.2.3, metadata-action generates 4 tags:
+              # ghcr.io/hbesfb/Colonizer:latest
+              # ghcr.io/hbesfb/Colonizer:1.2.3
+              # ghcr.io/hbesfb/Colonizer:1.2
+              # ghcr.io/hbesfb/Colonizer:1
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/hbesfb/colonizer # GHCR image name
+          tags: |
+            latest
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3 # Authenticates the runner to GHCR using the built‑in GitHub token.
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # This step builds the Dockerfile, applies all generated tags, and pushes the image to GHCR.
+      # This produces the container image that Kubernetes will pull.
+      - name: Build and push image to GHCR
+        uses: docker/build-push-action@v6 
+        with:
+          context: . # Build from repo root
+          push: true # Push image to GHCR
+          # Passes the output of the metadata-action (the 4 tags) into the build-push action
+          # So the build-push  action knows which tags to push
+          tags: ${{ steps.meta.outputs.tags }}
+          # The lables help scanners and k8s know where the image came from
+          labels: ${{ steps.meta.outputs.labels }}

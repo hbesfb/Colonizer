@@ -69,9 +69,9 @@ class PiHQCamera2(BaseCamera):
 		self.ready_cam()
 		self._logger.info(f"Capturing image {self._config['main']['size']}")
 		stream = BytesIO()
-		self._cam.capture_file(stream, format='jpeg')        
+		self._cam.capture_file(stream, format='jpeg')
 		return stream.getbuffer().tobytes()
-			
+
 	def set_exposure(self, exp):
 		if exp is None:
 			return
