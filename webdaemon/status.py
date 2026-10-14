@@ -18,7 +18,7 @@ class LocalServiceMonitor(Timer):
         self._app = None
         self._status = {
             'sql': False,
-            'camera': False,
+            'camera_zmq': False,
             'storage': False
         }
         self._lastaccess = datetime.now()
@@ -42,21 +42,34 @@ class LocalServiceMonitor(Timer):
             self.function(*self.args, **self.kwargs)
 
     def check_services(self):
+        # if inactive for a while, do not update
         if (datetime.now() - self._lastaccess) > timedelta(seconds=self.sleeptimer):
             return
         # check sql status
         try:
             with self._app.app_context():
                 db.session.execute(text('SELECT 1'))
-            self._status['sql'] = True
+            sql_status = True
         except:
-            self._status['sql'] = False
+            sql_status = False
 
-        # check camera status
-        self._status['camera'] = hwlayer.client.is_ready()
+        # check if Pi is online (responds to ZMQ OK)
+        try:
+            zmq_ok = hwlayer.client.is_ready()
+        except:
+            zmq_ok = False
 
-        # check storage status
-        self._status['storage'] = os.path.ismount(settings['general']['mountpoint'])
+        try:
+            storage_ok = hwlayer.client.pi_mounted_storage_ok() # calls the Pi daemon’s status socket
+        except:
+            storage_ok = False
+
+        #update status dict with new keys
+        self._status = {
+            'sql': sql_status,
+            'camera_zmq': zmq_ok,
+            'storage': storage_ok
+        }
 
         # timestamp update
         self._lastupdate = datetime.now()

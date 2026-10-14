@@ -45,7 +45,7 @@
 	<!-- message injected by show_error() -->
 </div>
 <div class="alert alert-danger" id="duplicate-plate" style="display: none;">
-		<strong>Error!</strong>&nbsp;Settleplate already in database.
+	<strong>Error!</strong>&nbsp;Settleplate already in database.
 </div>
 <div class="alert alert-danger" id="duplicate-location" style="display: none;">
 	<strong>Error!</strong>&nbsp;This location has already been registered for this batch. Please scan a different location.
@@ -54,11 +54,10 @@
 	<strong>Warning!</strong>&nbsp;Settleplate is passed expire date. (<span id="expire-date"></span>)
 </div>
 <div class="alert alert-warning" id="no-positive" style="display: none;">
-	<strong>Warning!</strong>&nbsp;<span id="no-positive-message">No positive test found for settleplate lot #<span id="no-positive-lot"></span>.</span><button class="btn btn-outline-warning btn-sm float-right"
-	id="no-positive-link">Register now</button>
+	<strong>Warning!</strong>&nbsp;<span id="no-positive-message">No positive test found for settleplate lot #<span id="no-positive-lot"></span>.</span><button class="btn btn-outline-warning btn-sm float-right" id="no-positive-link">Register now</button>
 </div>
 <div class="alert alert-warning" id="positive-pending" style="display: none;">
-	<strong>Warning!</strong>&nbsp;A positive test exists for batch #<span id="positive-pending-lot"></span>,but its colonies have not been counted yet.
+	<strong>Warning!</strong>&nbsp;A positive test exists for batch #<span id="positive-pending-lot"></span>, but its colonies have not been counted yet.
 </div>
 
 <table class="table table-sm table-striped">
@@ -69,8 +68,7 @@
 			<th scope="col">Location</th>
 		</tr>
 	</thead>
-	<tbody id="table_registered">
-	</tbody>
+	<tbody id="table_registered"></tbody>
 </table>
 
 {% endblock %}
@@ -79,7 +77,7 @@
 {{ super() }}
 <!-- Inject backend setting into JS as constant -->
 <script>
-	const POSITIVE_TEST_REQUIRED     = JSON.parse('{{ settings.general.positive_test_required | tojson }}');
+	const POSITIVE_TEST_REQUIRED = JSON.parse('{{ settings.general.positive_test_required | tojson }}');
 </script>
 <script src="{{ url_for(
 	'static',

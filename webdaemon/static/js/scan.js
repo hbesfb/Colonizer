@@ -34,6 +34,20 @@ $(document).ready(function() {
       $("#Counts").attr("readonly", false);
    });
 
+   // add error handler such that user sees that camera is offline immediately when refreshing, 
+   // rather than only finding out when they try to save.
+   $("#image").on('error', function() {
+      if ($(this).attr("src") == image_src) {
+         $("#image").attr("src", image_placeholder);  // restore placeholder on camera failure
+         $("#commit_fail").html(`<strong>Error!</strong>&nbsp;No image was captured - check if camera is available`);
+         $("#commit_fail").slideDown();
+         $("#Counts").attr("readonly", true);
+         $("#refresh").attr("disabled", false);  // allow image recapture retry
+         $("#barcode").attr("readonly", false);  // allow serial rescan
+         slideup_all();
+      }
+   });
+
    $("#Counts").change(function (e) {
       $("#refresh").attr("disabled", true);
       $("#commit").attr("disabled", false);
@@ -42,6 +56,15 @@ $(document).ready(function() {
 
    // commit image to db on click
    $("#commit").click(function () {
+      // guard against negative counts before sending them to backend
+      var counts_val = $("#Counts").val();
+      if (counts_val === "" || isNaN(counts_val) || parseInt(counts_val, 10) < 0) {
+         $("#commit_ok").slideUp();
+         $("#commit_fail").html(`<strong>Error! </strong>Counts must be zero or a positive integer`);
+         $("#commit_fail").slideDown();
+         slideup_all();
+         return; // don't disable inputs or send the request
+      }
       $("#commit").attr("disabled", true);
       $("#Counts").attr('readonly', true);
       $("#commit").blur();
@@ -75,7 +98,6 @@ $(document).ready(function() {
          },
          dataType: "json"
       });
-      
    });
 });
 

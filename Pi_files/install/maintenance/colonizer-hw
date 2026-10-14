@@ -1,0 +1,27 @@
+# Log rotation for Colonizer hardware daemon
+
+# This config file will be read automatically by logrotate.service, a service already active on the Pi
+
+# Rotates weekly, keeps 4 weeks of compressed logs ie:
+# Every week, archive the Colonizer error log. 
+# Keep the last four weeks of logs, 
+# compress old copies to save space, 
+# ignore missing logs, don't rotate empty logs, 
+# and rotate the file without restarting the running service.
+
+# Example rotation for file `....log`: (supervisor config shows it logs to /var/log/colonizer-hw)
+# colonizer-hw.out.log        - truncated to empty, Supervisor keeps writing here
+# colonizer-hw.out.log.1.gz   - last week's logs, compressed
+# colonizer-hw.out.log.2.gz   - 2 weeks ago
+# colonizer-hw.out.log.3.gz   - 3 weeks ago
+# colonizer-hw.out.log.4.gz   - 4 weeks ago (oldest, deleted next rotation)
+
+/var/log/colonizer-hw.out.log
+/var/log/colonizer-hw.err.log {
+	weekly
+	rotate 4
+	compress
+	missingok
+	notifempty
+	copytruncate
+}

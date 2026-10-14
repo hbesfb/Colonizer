@@ -1,0 +1,14 @@
+# Log rotation for Supervisor's own daemon log (not Colonizer logs).
+# This is a static config, installed via logrotate.d, and run
+# automatically by the logrotate systemd timer already active on the Pi.
+
+# Rotates weekly, keeps 4 weeks of compressed logs.
+
+/var/log/supervisor/supervisord.log {
+	weekly
+	rotate 4
+	compress
+	missingok
+	notifempty
+	copytruncate
+}

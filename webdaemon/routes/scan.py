@@ -3,6 +3,7 @@ from flask import Blueprint, current_app, render_template, request, jsonify, ses
 from webdaemon.model import Settleplate, SettleplateForm
 from webdaemon.database import db
 from settings import settings
+from sqlalchemy.exc import IntegrityError
 
 blueprint = Blueprint("scan",__name__,url_prefix="/settleplate")
 
@@ -25,7 +26,7 @@ def scan():
 	image_timestamp = session.get('image_timestamp')
 	img = session.get('image_jpeg')
 
-	if not image_timestamp or not img:
+	if image_timestamp is None or img is None:
 		current_app.logger.error(f"Invalid image capture: image_timestamp={repr(image_timestamp)}, img={type(img)}")
 		return jsonify({'committed': False, 'error': 'Image not saved. None was was captured - Check if camera is available'})
 
@@ -51,27 +52,36 @@ def scan():
 		sp.Counts = int(counts_raw)
 	# catch wrong values (ValueError eg "abc") and wrong types (TypeError eg list (int([])) or dict (int({})) )
 	except (ValueError, TypeError):
-		return jsonify({'committed': False, 'error': 'counts must be an integer'})
+		return jsonify({'committed': False, 'error': 'counts must be an integer greater than -1'})
+
+	# Reject negative counts from UI
+	if sp.Counts < 0:
+		return jsonify({'committed': False, 'error': 'Counts must be zero or a positive integer'})
 
 	sp.Location = plateinfo.Location
 	sp.Batch = plateinfo.Batch
 	sp.Image = img
-	# colonies should be string not bytes as was with old code ( data['colonies'].encode('utf8')  # produces bytes)
+	# colonies should be string not bytes as was with old code ( ie data['colonies'].encode('utf8') # produces bytes) ie “Don’t store bytes; store the string version.”
 	sp.Colonies =  data.get('colonies')
 
 	try:
 		db.session.add(sp)
 		db.session.commit()
+	# Return error if a DB constraint blocks this specific write
+	except IntegrityError as e:
+		db.session.rollback()
+		current_app.logger.error('DB Integrity error! Failed to write scan to DB: %s' % str(e))
+		return jsonify({'committed': False, 'error': 'This count could not be saved (invalid Count value)'})
 	except Exception as e:
 		db.session.rollback()
 		current_app.logger.error('Failed to write to DB: %s'%str(e))
-		return jsonify({'committed': False, 'error': f'Database error: {str(e)}'})
+		return jsonify({'committed': False, 'error': 'Database write failed'})
 
 	dt = None
 	if plateinfo.ScanDate:
 		dt = round((sp.ScanDate - plateinfo.ScanDate).total_seconds() / 3600) # convert to hours
 		current_app.logger.info(f'User {g.username} scanned {sp.ID} to DB with {sp.Counts} counts')
-	
+
 	return jsonify({'committed':True, 'Counts': sp.Counts, 'ID': sp.ID, 'dT': dt })
 
 @blueprint.route('/info', methods=(['POST']))
@@ -80,7 +90,7 @@ def plate_info():
 	barcode = data.get('barcode') # does not throw keyError where 'barcode' is missing or None
 	if not barcode: # safer when 'barcode' is missing or None or empty string
 		return jsonify({'error':'missing serial'})
-	
+
 	# query for registration
 	plateinfo = Settleplate.get_registration(barcode)
 
@@ -100,6 +110,7 @@ def plate_info():
 
 	timepoints = []
 	for scan in scans:
+		# note that scan date is is datetime.now() at registration, so scandate for an existing plate will never be none
 		dt = round((scan.ScanDate - plateinfo.ScanDate).total_seconds() / 3600) # convert to hours
 		timepoints.append({
 			'ID' : scan.ID,
