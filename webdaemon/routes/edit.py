@@ -35,7 +35,7 @@ def edit_settleplate(settleplate_id):
 				current_app.logger.exception(f"Failed to update settleplate : {sp.ID}")
 			else:
 				current_app.logger.info(f"User {g.username} edited settleplate : {sp.ID}")
-				updated = True	
+				updated = True
 	elif action == "delete" and not readonly:
 		current_app.logger.info(f"User {g.username} deleting settleplate : {sp.ID}"  )
 		try:
