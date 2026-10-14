@@ -1,4 +1,4 @@
-var cfus;
+var cfus = {};
 var results;
 var model;
 var show_low = true;
@@ -89,6 +89,14 @@ function cfu_add(cfu) {
 
    $('#overlay').append(group);
    cfus[cfu.id] = cfu;
+}
+
+function cfu_newid() {
+   let new_id = 0;
+   for (const key in cfus) {
+      new_id = Math.max(new_id, cfus[key].id+1)
+   }
+   return new_id;
 }
 
 function cfu_update_counts() {
