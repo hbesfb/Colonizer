@@ -3,8 +3,9 @@ name: Build and Push Container # Name of this github Actions workflow
 on:
   workflow_dispatch: # Allows manual triggering from the GitHub Actions UI but only if this defintion exists on the default branch
   push:
-    branches:
-    - master # Any push to master triggers a build
+    branches: # Any push to these branches triggers a build
+    - develop
+    - 'feature/**'
     tags:
     - '*.*.*' # Any push of a semvar tag (ie matching X.Y.Z)  triggers a build (e.g., 1.0.0, 2.3.7, etc.)
 
@@ -24,22 +25,47 @@ jobs:
       - name: Lint Dockerfile
         uses: hadolint/hadolint-action@v3.1.0 # Runs Hadolint against the Dockerfile to prevent bad Dockerfile pattern
 
-      # Generate image metadata (all the tags the image should have)
-      # eg If we push tag 1.2.3, metadata-action generates 4 tags:
-              # ghcr.io/hbesfb/Colonizer:latest
-              # ghcr.io/hbesfb/Colonizer:1.2.3
-              # ghcr.io/hbesfb/Colonizer:1.2
-              # ghcr.io/hbesfb/Colonizer:1
+      # Generate image metadata (the tags that will be applied to the image).
       - name: Docker Meta
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/hbesfb/colonizer # GHCR image name
           tags: |
-            latest
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
+
+            # pushing to develop branch updates/creates the image colonizer:staging
+            # In test deployment we can use: image: ghcr.io/hbesfb/colonizer:staging
+            
+            # The image used by the test environment will automatically update as new commits
+            # are pushed to develop.
+            type=raw,value=staging,enable=${{ github.ref == 'refs/heads/develop' }}
+
+            # pushing to a feature branch updates/creates the image colonizer:feature-<branch-name>
+            # 
+            # Examples:
+            #   feature/add-barcode -> colonizer:feature-add-barcode
+            #   feature/new-registration -> colonizer:feature-new-registration
+            # A test deployment can be configured to use the image from a
+            # specific feature branch for isolated testing.
+            #
+            # The image associated with that feature branch will automatically
+            # update as new commits are pushed to the branch.
+            type=ref,event=branch,enable=${{ github.ref != 'refs/heads/develop' }}
+
+            # Creating a semantic-version tag creates a production image:
+            #   v1.0.0 -> colonizer:v1.0.0
+            #
+            # In the production deployment we can use:
+            #   image: ghcr.io/hbesfb/colonizer:v1.0.0
+            #
+            # This image is immutable and will never change.
+            # Production is upgraded only by explicitly changing the image
+            # tag, for example:
+            #   colonizer:v1.0.0 -> colonizer:v1.0.4
+            type=semver,pattern={{raw}}
+            
+            # add SHA digest tag for traceability 
+            type=sha
 
       - name: Log in to GHCR
         uses: docker/login-action@v3 # Authenticates the runner to GHCR using the built‑in GitHub token.
