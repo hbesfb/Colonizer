@@ -12,14 +12,14 @@ $(document).ready(function() {
    $("#image").on('load', cfu_setAspect);
 });
 
-// if image to overlay isn't square, compensate by setting viewbox as cfu coordinates are on relative to image width and height
+// if image to overlay isn't square, compensate by setting viewbox as cfu coordinates are relative to image width and height
 function cfu_setAspect() {
    let img = $("#image").get(0);
    let ratio = img.naturalWidth / img.naturalHeight;
    let x1,x2,y1,y2;
    x1 = y1 = 0.0;
    x2 = y2 = 1.0;
-   if (ratio > 1-0) {
+   if (ratio > 1.0) {
       y2 = ratio;
    } else if (ratio < 1.0) {
       x2 = 1/ratio;
@@ -28,7 +28,7 @@ function cfu_setAspect() {
    }
    let vb = `${x1.toFixed(3)} ${y1.toFixed(3)} ${x2.toFixed(3)} ${y2.toFixed(3)}`;
    $("#overlay").attr('viewBox', vb);
-   console.log("CFU-draw - fixed aspect ratio");
+   console.log(`CFU-draw - fixed aspect ratio (${img.naturalWidth}x${img.naturalHeight})`);
 }
 
 function cfu_toggle(id) {
