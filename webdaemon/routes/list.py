@@ -10,11 +10,17 @@ def settleplates():
 	# if get
 	if request.method == 'POST' and g.isAdmin:
 		selected = request.form.getlist("selected")
-		for settleplate_id in selected:
-			settleplate = Settleplate.query.get(int(settleplate_id))
-			db.session.delete(settleplate)
-		db.session.commit()
-		current_app.logger.info(f"User {g.username} deleting settleplates : {selected}")
+		try:
+			for settleplate_id in selected:
+				settleplate = Settleplate.query.get(int(settleplate_id))
+				db.session.delete(settleplate)
+			db.session.commit()
+		except Exception as e:
+			db.rollback()
+			current_app.logger.error('Failed to delete from DB: %s'%str(e))
+			raise
+		else:
+			current_app.logger.info(f"User {g.username} deleting settleplates : {selected}")
 
 	# define search from request data
 	date_from = request.args.get('from', (date.today() - timedelta(days=7)).isoformat(), str)

@@ -7,8 +7,10 @@
 	{{ super() }}
 	<script src="/static/tensorflow/tf.min.js"></script>
 	<script src="/static/js/scan.js"></script>
+	<script src="/static/js/imageoverlay.js"></script>
 	<script src="/static/hive/CFUdraw.js"></script>
 	<script src="/static/hive/CFUdetect.js"></script>
+	<script src="/static/hive/CFUmanual.js"></script>
 	{% if autocount %}
 	<script>
 		$(document).ready(function() {
@@ -19,6 +21,7 @@
 					$("#commit").trigger("focus");
 				}
 			});
+			threshold_high = {{ hive_settings['confidence_threshold_high'] }}
 		});
 	</script>
 	{% endif %}
@@ -79,14 +82,7 @@
 	</div>
 	<div class="col mx-3">
 		<div class="row mb-3">
-			<div class="imageview imageview-overlay">
-				<img id="image" src="">
-				<svg viewBox="0 0 1 1" preserveAspectRatio="none" id="overlay"></svg>
-				<div class="btn-group">
-					<button id="zoom" type="button" class="btn btn-secondary"><i class="fa fa-search-plus"></i></button>
-					<button id="detect" type="button" class="btn btn-secondary" disabled><i class="fa fa-magic"></i></button>
-				</div>
-			</div>
+			{% include "imageoverlay.html" %}
 		</div>
 		<div class="row">
 			<div class="input-group">
@@ -99,14 +95,6 @@
 					<button id="commit" type="button" class="btn btn-secondary"><i class="fa fa-save"></i></button>
 				</div>
 			</div>
-		</div>
-	</div>
-</div>
-<div id="imagemodal" class="modal">
-	<div class="modal-content">
-		<div class="modal-body">
-			<img src="" data-dismiss="modal" data-target="imagemodal" id="imagezoom"
-				style="width:100%;cursor:zoom-out">
 		</div>
 	</div>
 </div>

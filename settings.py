@@ -100,7 +100,8 @@ class Settings(FileSystemEventHandler):
 
 	def save(self):
 		# do not trigger event on this change
-		# make save() safe (ie ....)
+		# make save() safe; temporarily disable file watching so that saving
+		# the settings does not trigger an automatic reload.
 		if self._observer:
 			self._observer.stop()
 		with open(self._filepath,'w') as f:

@@ -125,6 +125,12 @@ find $INSTALL_DIR/webdaemon/static -type d -exec chmod 750 {} \;
 usermod -a -G gpio colonizer
 usermod -a -G video colonizer
 
+# install miscrosoft ODBC driver
+curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+curl -fsSL https://packages.microsoft.com/config/debian/12/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
+sudo apt-get update
+sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
+
 # # setup timeserver
 #vi /etc/systemd/timesyncd.conf
 #> NTP=<hostname>
