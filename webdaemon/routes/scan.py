@@ -80,7 +80,7 @@ def scan():
 	dt = None
 	if plateinfo.ScanDate:
 		dt = round((sp.ScanDate - plateinfo.ScanDate).total_seconds() / 3600) # convert to hours
-		current_app.logger.info(f'User {g.username} scanned {sp.ID} to DB with {sp.Counts} counts')
+		current_app.logger.info(f'User {g.username} scanned plateID# {sp.ID} to DB with {sp.Counts} counts')
 
 	return jsonify({'committed':True, 'Counts': sp.Counts, 'ID': sp.ID, 'dT': dt })
 
