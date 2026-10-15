@@ -45,6 +45,9 @@ jobs:
             # Examples:
             #   feature/add-barcode -> colonizer:feature-add-barcode
             #   feature/new-registration -> colonizer:feature-new-registration
+            # The naming convention feature/<branch-name> ensures that we dont build images from 
+            # random temp branches, that way we have a cleaner pkg registry
+            #
             # A test deployment can be configured to use the image from a
             # specific feature branch for isolated testing.
             #
