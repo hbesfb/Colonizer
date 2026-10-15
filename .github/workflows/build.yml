@@ -67,7 +67,7 @@ jobs:
             #   colonizer:v1.0.0 -> colonizer:v1.0.4
             type=semver,pattern={{raw}}
             
-            # add SHA digest tag for traceability 
+            # add git commit SHA tag for traceability 
             type=sha
 
       - name: Log in to GHCR
