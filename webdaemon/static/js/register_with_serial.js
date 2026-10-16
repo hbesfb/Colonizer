@@ -69,6 +69,9 @@ function transition(new_state) {
 }
 
 function process_input(data) {
+     // any recognized barcode clears previous barcode error message
+    hide_error();
+
     //Always derive batch from serial scan
     if (data.lot) {
         if (new_batch !== data.lot) {
@@ -323,8 +326,12 @@ function show_error(message) {
         .text(message)
         .stop(true, true)
         .fadeIn(200)
-        .delay(2000)
-        .fadeOut(400);
+}
+
+function hide_error() {
+    $("#invalid-barcode")
+        .stop(true, true)
+        .hide();
 }
 
 function hide_warnings_synchronized() {
