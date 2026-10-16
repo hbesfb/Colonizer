@@ -4,10 +4,10 @@
 - Colonizer allows only for one settleplate registration for each each location within a batch
 - Registrations and scan results are stored as separate SETTLEPLATE records and are linked by barcode. A registration record has Counts = -1, while scan records have Counts >= 0.
 - Normally locations are not resampled, but if one feels inclined to do so, then they have the option to either use a plate from a another batch OR delete the previous sample/settleplate that exists for this location from the DB
-- A registering user has a "grace period" within which they can edit or delete plates they have registered?? TODO Confirm this
-- The first scanned plate of a new batch is auto registered to belong to location PositiveTest by specifying it in the config file. (The default is first plate of batch == positive plate). In the lab, this plate is then incubated in a heated chamber for 3 days, after which it can be scanned to record its colony counts
+- A registering user has a "grace period" of 1 hour within which they can edit (counts) or delete entire plates they have registered. After that, only admin user can delete the record(s).
+- The first scanned plate of a new batch is auto registered to belong to location `PositiveTest`, this location is specified in the config file. (The default is `first plate of batch == positive plate`). In the lab, this plate is then incubated in a heated chamber for 3 days, during which time it can be scanned to record its colony counts periodically
 - A new batch of plates has only one postive-test plate
-- Registering of the positive test is not blocking; other plates of the same batch can be registered even if the colonies of the exisitng positive test plate have not been counted. During normal lab rutines, the positive test plates are scanned way ahead in good time before plates of the batches in current use are depleted.
+- Registering of the positive test is not blocking; other plates of the same batch can be registered even if the colonies of the existing positive test plate have not been counted. During normal lab rutines, the positive test plates are scanned way ahead in good time before plates of the batches in current use are depleted.
 
 ## Here is how the lab rutine is envision to work with Colonizer:
 ### Phase 1 - Registration via Colonizer UI: 
@@ -23,9 +23,9 @@
 - The plates are incubated in an incubator
 
 ### Phase 4 - Scanning via Colonizer UI:
-- This is done contineously during the incubation period at the scanning station. This uses a raspberry Pi and camera
+- This is done contineously during the incubation period at the scanning station. This uses a raspberry Pi and camera - the `Colony Counter`
 - Plate barcode is scanned using a barcode scanner to retrieve its details from the DB
-- User then places the plate into the automatic colony counter and uses the colonizer UI to auto detect colony count on the plate
+- User then places the plate into the automatic Colony Counter and uses the colonizer UI to auto detect colony count on the plate
 - User then confirms/adjusts counts and saves to the db. Details captured are:
     - operator id (ie user/person scanning)
     - colony count on the plate (must be zero or more), image of plate and timestamp upon saving.
