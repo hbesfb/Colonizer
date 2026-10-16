@@ -74,7 +74,7 @@ def handle_gs1_or_location_input(raw_data):
 		else: #both parsers failed
 			current_app.logger.info(f"error: input neither a known location or settleplate barcode")
 			current_app.logger.info(f"gs1 parse error: {gs1_err}, location parse error: {loc_err}, input: {raw_data}")
-			return jsonify({})
+			return jsonify({"error": {"message": "Barcode not recognized. Please scan a valid settleplate or location barcode."}}), 400
 
 	current_app.logger.info(f"Parsed input: {result}")
 	current_app.logger.info(f"Parsed input ({'GS1' if gs1 else 'fallback'}): {result}")
