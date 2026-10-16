@@ -25,14 +25,25 @@
 ### Phase 4 - Scanning via Colonizer UI:
 - This is done contineously during the incubation period at the scanning station. This uses a raspberry Pi and camera
 - Plate barcode is scanned using a barcode scanner to retrieve its details from the DB
-- User then places the plate into the automatic scanner and uses the colonixer UI to auto detect colony count on the plate
+- User then places the plate into the automatic colony counter and uses the colonizer UI to auto detect colony count on the plate
 - User then confirms/adjusts counts and saves to the db. Details captured are:
-    - operator id (ie person scanning)
-    - colony count on the plate (must be >-1), image of plate and timestamp upon saving.
+    - operator id (ie user/person scanning)
+    - colony count on the plate (must be zero or more), image of plate and timestamp upon saving.
 A new DB row is created with the above details and same barcode as existed previously
 
-## Deployment Modes
+### Previewing and saving camera images
+This is not part of the environment moitoring workflow. However if one wants to see the live camera feed,
+they can do so by "Camera" tab in the UI once logged in.
+    - Choose Camera
+    - Select "settleplate" mode from drop down
+**Precaution**
+It is possible to take a picture and save it by clicking click the "Save" button.
+The image will be saved locally on the colony counter. 
+It is not recommended to save several images on the Colony Counter since its memory card has very limited storage capacity
+If there is need to expand this capability, a request can be sent in to SFB for a new feature; (for example; You want to use the camera 
+to take images and save images that are not related to the environment monitoring workflow)
 
+## Deployment Modes
 Colonizer service should supports two distinct deployment modes, the mode depends on where the main application runs.
 Both modes share the same repository/codebase but differ in what components run locally on the Pi.
 Here is a high‑level overview of each mode and what they install
@@ -54,7 +65,7 @@ This mode is ideal when:
 - You are not using Kubernetes
 - The Pi must operate independently
 
-### Installer for the Full Standalone Mode (This is a WIP for the script and documentation)
+#### Installer for the Full Standalone Mode (This is a WIP for the script and documentation)
 `Pi_running_both_app_and_hardware/install_both_app_and_hardware.sh`
 
 **Key features**
@@ -74,7 +85,6 @@ This mode is ideal when:
     - nginx
     - redis
     - watchdog
-
 This mode gives an all‑in‑one deployment.
 For more details check the installer and readme at `./Pi_running_both_app_and_hardware`
 ---
@@ -90,7 +100,7 @@ This mode is ideal when:
 - The Pi should act only as a hardware endpoint
 - You want minimal dependencies on the Pi
 
-### Installer for the Hardware Only Mode
+#### Installer for the Hardware Only Mode
 `Pi_files/Pi_running_only_hardware/install_all.sh`
 
 **key features**
