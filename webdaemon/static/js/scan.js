@@ -106,7 +106,7 @@ function slideup_all() {
       $("#commit_ok").slideUp();
       $("#commit_fail").slideUp();
       $("#sameuser_error").slideUp();
-   }, 3000);
+   }, 6000);
 }
 
 function decode_text(text_input) {
