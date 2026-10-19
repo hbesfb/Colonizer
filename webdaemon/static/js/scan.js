@@ -34,8 +34,8 @@ $(document).ready(function() {
       $("#Counts").attr("readonly", false);
    });
 
-   // add error handler such that user sees that camera is offline immediately when refreshing, 
-   // rather than only finding out when they try to save.
+   // Show image capture failures immediately and reset the workflow
+   // so the user can scan a new plate without reloading the page.
    $("#image").on('error', function() {
       if ($(this).attr("src") == image_src) {
          // Reset UI/workflow
