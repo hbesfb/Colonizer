@@ -145,7 +145,7 @@ function plate_info() {
             init_page();
          } else {
             $("#refresh").attr("disabled", false);
-            $("#refresh").focus();
+            // $("#refresh").focus();
             $("#batch").val(data.Batch);
             $("#location").val(data.Location);
             $("#table_timepoints").empty();
