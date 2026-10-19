@@ -70,7 +70,10 @@ def login_check():
 	session.modified = True
 
 	g.username = session.get('user')
-	g.isAdmin = g.username in settings['users']
+	g.isAdmin = (
+	g.username == ADMIN_USERNAME or
+	g.username in settings['users'] # to allow for other admin users defined in settings as in old code
+)
 
 	# Allow requests for static files and status/health/ready endpoints to skip login check
 	if request.path.startswith(("/status", "/health", "/ready", "/static/")):

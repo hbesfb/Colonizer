@@ -4,10 +4,10 @@
 - Colonizer allows only for one settleplate registration for each each location within a batch
 - Registrations and scan results are stored as separate SETTLEPLATE records and are linked by barcode. A registration record has Counts = -1, while scan records have Counts >= 0.
 - Normally locations are not resampled, but if one feels inclined to do so, then they have the option to either use a plate from a another batch OR delete the previous sample/settleplate that exists for this location from the DB
-- A registering user has a "grace period" within which they can edit or delete plates they have registered?? TODO Confirm this
-- The first scanned plate of a new batch is auto registered to belong to location PositiveTest by specifying it in the config file. (The default is first plate of batch == positive plate). In the lab, this plate is then incubated in a heated chamber for 3 days, after which it can be scanned to record its colony counts
+- A registering user has a "grace period" of 1 hour within which they can edit (counts) or delete entire plates they have registered. After that, only admin user can delete the record(s).
+- The first scanned plate of a new batch is auto registered to belong to location `PositiveTest`, this location is specified in the config file. (The default is `first plate of batch == positive plate`). In the lab, this plate is then incubated in a heated chamber for 3 days, during which time it can be scanned to record its colony counts periodically
 - A new batch of plates has only one postive-test plate
-- Registering of the positive test is not blocking; other plates of the same batch can be registered even if the colonies of the exisitng positive test plate have not been counted. During normal lab rutines, the positive test plates are scanned way ahead in good time before plates of the batches in current use are depleted.
+- Registering of the positive test is not blocking; other plates of the same batch can be registered even if the colonies of the existing positive test plate have not been counted. During normal lab rutines, the positive test plates are scanned way ahead in good time before plates of the batches in current use are depleted.
 
 ## Here is how the lab rutine is envision to work with Colonizer:
 ### Phase 1 - Registration via Colonizer UI: 
@@ -23,16 +23,27 @@
 - The plates are incubated in an incubator
 
 ### Phase 4 - Scanning via Colonizer UI:
-- This is done contineously during the incubation period at the scanning station. This uses a raspberry Pi and camera
+- This is done contineously during the incubation period at the scanning station. This uses a raspberry Pi and camera - the `Colony Counter`
 - Plate barcode is scanned using a barcode scanner to retrieve its details from the DB
-- User then places the plate into the automatic scanner and uses the colonixer UI to auto detect colony count on the plate
+- User then places the plate into the automatic Colony Counter and uses the colonizer UI to auto detect colony count on the plate
 - User then confirms/adjusts counts and saves to the db. Details captured are:
-    - operator id (ie person scanning)
-    - colony count on the plate (must be >-1), image of plate and timestamp upon saving.
+    - operator id (ie user/person scanning)
+    - colony count on the plate (must be zero or more), image of plate and timestamp upon saving.
 A new DB row is created with the above details and same barcode as existed previously
 
-## Deployment Modes
+### Previewing and saving camera images
+This is not part of the environment moitoring workflow. However if one wants to see the live camera feed,
+they can do so by "Camera" tab in the UI once logged in.
+    - Choose Camera
+    - Select "settleplate" mode from drop down
+**Precaution**
+It is possible to take a picture and save it by clicking click the "Save" button.
+The image will be saved locally on the colony counter. 
+It is not recommended to save several images on the Colony Counter since its memory card has very limited storage capacity
+If there is need to expand this capability, a request can be sent in to SFB for a new feature; (for example; You want to use the camera 
+to take images and save images that are not related to the environment monitoring workflow)
 
+## Deployment Modes
 Colonizer service should supports two distinct deployment modes, the mode depends on where the main application runs.
 Both modes share the same repository/codebase but differ in what components run locally on the Pi.
 Here is a high‑level overview of each mode and what they install
@@ -54,7 +65,7 @@ This mode is ideal when:
 - You are not using Kubernetes
 - The Pi must operate independently
 
-### Installer for the Full Standalone Mode (This is a WIP for the script and documentation)
+#### Installer for the Full Standalone Mode (This is a WIP for the script and documentation)
 `Pi_running_both_app_and_hardware/install_both_app_and_hardware.sh`
 
 **Key features**
@@ -74,7 +85,6 @@ This mode is ideal when:
     - nginx
     - redis
     - watchdog
-
 This mode gives an all‑in‑one deployment.
 For more details check the installer and readme at `./Pi_running_both_app_and_hardware`
 ---
@@ -90,7 +100,7 @@ This mode is ideal when:
 - The Pi should act only as a hardware endpoint
 - You want minimal dependencies on the Pi
 
-### Installer for the Hardware Only Mode
+#### Installer for the Hardware Only Mode
 `Pi_files/Pi_running_only_hardware/install_all.sh`
 
 **key features**
