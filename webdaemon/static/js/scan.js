@@ -38,13 +38,14 @@ $(document).ready(function() {
    // rather than only finding out when they try to save.
    $("#image").on('error', function() {
       if ($(this).attr("src") == image_src) {
-         $("#image").attr("src", image_placeholder);  // restore placeholder on camera failure
-         $("#commit_fail").html(`<strong>Error!</strong>&nbsp;No image was captured - check if camera is available`);
+         // Reset UI/workflow
+         init_page();
+
+         // Show error after reset
+         $("#commit_fail").html(
+            `<strong>Error!</strong>&nbsp;No image was captured. The camera may be unavailable.`
+         );
          $("#commit_fail").slideDown();
-         $("#Counts").attr("readonly", true);
-         $("#refresh").attr("disabled", false);  // allow image recapture retry
-         $("#barcode").attr("readonly", false);  // allow serial rescan
-         slideup_all();
       }
    });
 
