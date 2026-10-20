@@ -103,6 +103,15 @@ def get_image(image_id):
 
 @blueprint.route('/save', methods=['POST'])
 def save_image():
+	config_file = os.environ.get('SETTLEPLATE_CONFIG', 'default')
+	is_k8s = (config_file == "kubernetes")
+
+	if is_k8s:
+		return jsonify({
+			"saved": False,
+			"error": "Direct image saving onto Colony Counter is disabled."
+		})
+
 	try:
 		data = request.get_json()
 
