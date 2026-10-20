@@ -45,7 +45,7 @@ def live():
 		# return immediately so browser triggers image error handler
 		return make_response("Camera unavailable",503)
 
-	# temp timing for performance monitoring
+	# Troubleshooting: Timing for performance monitoring
 	start = perf_counter()
 	# request image
 	success, image = hwlayer.client.capture_image(capture_settings)
