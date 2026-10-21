@@ -9,6 +9,7 @@ from webdaemon.imagetools import *
 from webdaemon.status import servicemonitor
 from settings import settings
 import uuid
+import os
 from time import perf_counter
 
 def _safe_filename_part(value: str, max_len: int = 64) -> str:
