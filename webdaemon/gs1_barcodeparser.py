@@ -130,3 +130,11 @@ def parse_gs1(datamatrix: str):
 			result["plate_serial"] = value
 
 	return result
+
+# remove FNC1 separators
+def normalize_gs1_barcode(barcode):
+	"""
+	Remove GS1 FNC1 separators so barcodes have a consistent
+	representation for storage and comparison.
+	"""
+	return barcode.replace("\x1D", "")

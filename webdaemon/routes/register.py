@@ -4,6 +4,7 @@ from webdaemon.database import db
 from webdaemon.barcodeparser import Decoder
 from settings import settings
 from sqlalchemy.exc import IntegrityError
+from webdaemon.gs1_barcodeparser import normalize_gs1_barcode
 
 blueprint = Blueprint("register",__name__,url_prefix="/settleplate")
 
@@ -63,7 +64,7 @@ def build_settleplate(data: dict):
 	#TODO consider adding PlateSerial to settleplate model (model.py) to store the original serial number separate from the full barcode
 	# Thereafter you can add a separate field for PlateSerial
 	if not settings['general'].get('workflow_starts_with_batch', True):
-		clean_barcode = data['full_barcode'].replace("\x1D", "") # remove FNC1 separators before storage
+		clean_barcode = normalize_gs1_barcode(data['full_barcode']) # remove FNC1 separators before storage
 		new_sp.Barcode = clean_barcode
 		#new_sp.PlateSerial = data['plate_serial'] # value will not be saved since the ORM model does not define this column
 	else:

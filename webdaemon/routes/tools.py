@@ -4,7 +4,7 @@ from webdaemon.database import db
 from webdaemon.barcodeparser import Decoder
 from webdaemon.status import servicemonitor
 from settings import settings
-from webdaemon.gs1_barcodeparser import parse_gs1
+from webdaemon.gs1_barcodeparser import parse_gs1, normalize_gs1_barcode
 
 NOT_COUNTED = -1
 WORKFLOW_STARTS_WITH_BATCH = settings['general'].get('workflow_starts_with_batch', True)
@@ -80,7 +80,7 @@ def handle_gs1_or_location_input(raw_data):
 	current_app.logger.info(f"Parsed input ({'GS1' if gs1 else 'fallback'}): {result}")
 
 	if 'plate_barcode' in result:
-		result['used'] = query_scan_count(result['plate_barcode'])
+		result['used'] = query_scan_count(normalize_gs1_barcode(result['plate_barcode']))
 
 	try:
 		result = apply_positive_test_logic(result)
