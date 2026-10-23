@@ -9,11 +9,7 @@ $(document).ready(function() {
    // set up events
    $("#clear").click(init_page);
 
-   // zoom in on image on click
-   $("#zoom").click(function () {
-      $("#imagemodal").modal('show');
-   });
-   // when new image loaded, update imagezoom
+   // when new image loaded, update image
    $("#image").on('load', function() {
       if ($(this).attr("src") == image_src) {
          $("#imagezoom").attr("src", image_src);
