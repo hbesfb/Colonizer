@@ -1,6 +1,7 @@
 var new_batch;
 var new_serial;
 var new_location;
+var positive_registration_required = false;
 var new_full_barcode; //track full GS1 barcode
 //initialise to safe defaults
 var text_input = "";
@@ -72,31 +73,56 @@ function process_input(data) {
      // any recognized barcode clears previous barcode error message
     hide_error();
 
+    // Plate scanned while waiting for a location: reject with feedback
+    // (checked first so a rejected plate doesn't change batch/table/fields)
+    if (state === STATE.LOCATION && "plate_barcode" in data) {
+        hide_registration_warnings();
+        show_error("Please scan a location barcode for the current settleplate.");
+        return;
+        }
+
     //Always derive batch from serial scan
     if (data.lot) {
         if (new_batch !== data.lot) {
             new_batch   = data.lot;
             saved_batch = data.lot;
-           
+
             $("#table_registered").empty();   // clear old table
             update_table();   // refresh table immediately on lot change
         }
 
         update_fields();   // ensure batch field updates immediately on scan
-
+ 
         // Redirect to SERIAL only if not already there
         if (state !== STATE.SERIAL) {
             transition(STATE.SERIAL);
             return;
         }
-        // Already in SERIAL, fall through
+
+    // Already in SERIAL, fall through
     }
 
     switch(state) {
         case STATE.SERIAL:
+            // If User scanned a location while a positive-test registration is still required.
+            if ("location" in data && positive_registration_required) {
+                // Clear other warnings so only the relevant message is shown
+                hide_registration_warnings();
+                show_error("A positive test must be registered first. Click 'Register now' before scanning a location.");
+                return;
+            }
+
+            // If a location is scanned before a settleplate, give immediate feedback and do not advance state.
+            if ("location" in data) {
+                // Clear other warnings so only the relevant message is shown
+                hide_registration_warnings();
+                show_error("Please scan a settleplate barcode before scanning a location.");
+                return;
+                }
+
             if("plate_barcode" in data) {
                 // always clear duplicate warning on any new serial scan
-                hide($("#duplicate-plate"));
+                hide_registration_warnings();
 
                 if (data.expire) {
                     let expire = new Date(data.expire);
@@ -144,6 +170,8 @@ function process_input(data) {
                 // do NOT advance to location — wait for positive registration.
                 // check_positive() will have already shown the warning + button.
                 if (POSITIVE_TEST_REQUIRED && data.no_positive) {
+                    positive_registration_required = true;
+
                     // Stay in SERIAL state; user must click "Register now" first.
                     positive_serial   = data.plate_serial;
                     positive_full_barcode = data.plate_barcode;
@@ -158,6 +186,7 @@ function process_input(data) {
                     return;
                 }
                 hide($("#no-positive"));
+                positive_registration_required = false;
                 transition(STATE.LOCATION);
             }
             break;
@@ -188,6 +217,11 @@ function process_input(data) {
         default:
             break;
    }
+}
+
+function hide_registration_warnings() {
+    hide($("#duplicate-plate"));
+    hide($("#duplicate-location"));
 }
 
 function set_glyph(glyph, state) {
@@ -260,6 +294,7 @@ function register_positive() {
     set_glyph($("#batch_glyph"),    GLYPH.PASS);
     set_glyph($("#serial_glyph"),   GLYPH.PASS);
     update_fields();
+    positive_registration_required = false;
     // go to register directly
     transition(STATE.REGISTER);
 }

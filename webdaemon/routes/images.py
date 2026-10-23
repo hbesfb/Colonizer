@@ -6,8 +6,11 @@ import hwlayer.client
 from webdaemon.model import Settleplate
 from webdaemon.database import db
 from webdaemon.imagetools import *
+from webdaemon.status import servicemonitor
 from settings import settings
 import uuid
+import os
+from time import perf_counter
 
 def _safe_filename_part(value: str, max_len: int = 64) -> str:
 	"""
@@ -32,8 +35,22 @@ def live():
 	if mode in settings['camera'].keys():
 		capture_settings.update(settings['camera'][mode])
 
+	# Fail fast if ServiceMonitor already knows the Pi is offline
+	if not servicemonitor.status.get("camera_zmq", False):
+		current_app.logger.warning("Skipping image capture because camera_zmq is offline")
+
+		#clear any previous image from the session
+		session['image_jpeg'] = None
+		session['image_timestamp'] = None
+
+		# return immediately so browser triggers image error handler
+		return make_response("Camera unavailable",503)
+
+	# Troubleshooting: Timing for performance monitoring
+	start = perf_counter()
 	# request image
 	success, image = hwlayer.client.capture_image(capture_settings)
+	current_app.logger.info("capture_image took %.2f seconds (success=%s)",	perf_counter() - start,success)
 
 	if success:
 		# process image
@@ -87,6 +104,15 @@ def get_image(image_id):
 
 @blueprint.route('/save', methods=['POST'])
 def save_image():
+	config_file = os.environ.get('SETTLEPLATE_CONFIG', 'default')
+	is_k8s = (config_file == "kubernetes")
+
+	if is_k8s:
+		return jsonify({
+			"saved": False,
+			"error": "Direct image saving onto Colony Counter is disabled."
+		})
+
 	try:
 		data = request.get_json()
 
