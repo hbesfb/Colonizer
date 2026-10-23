@@ -18,9 +18,7 @@
 # As from the example, some AIs are of variable length ('10', and '21'). 
 # Because of this they are identified by a terminator (\X1D) or the start of the next AI
 #
-# Other AIs are fixed length eg ('16' and '17')
-
-
+# Other AIs are fixed length eg ('01' and '17')
 
 # GS1 AI definitions (extendable)
 from datetime import datetime
@@ -44,7 +42,7 @@ ALL_AIS = set(FIXED_LENGTH_AIS) | set(VARIABLE_LENGTH_AIS)
 def match_ai(data, pos):
 	"""
 		Match 2-digit GS1 AI at position. 
-		note, so far all plate AIs are only 2, change matcah_ai() when they get longer 
+		note, so far all plate AIs are only 2, change match_ai() when they get longer 
 	"""
 	ai_length = 2
 	ai = data[pos:pos + ai_length]
@@ -69,7 +67,7 @@ def parse_gs1(datamatrix: str):
 			break
 
 		pos = new_pos
-		
+
 		seen_ais.add(ai) # mark AI as seen if we see it again, we know it's a value not an AI
 
 		# FIXED-LENGTH
@@ -87,7 +85,7 @@ def parse_gs1(datamatrix: str):
 				# Stop at FNC1 separator
 				if datamatrix[pos] == "\x1D":
 					break
-				
+
 				next_two = datamatrix[pos:pos+2]
 
 				# Only treat next AI as boundary if:
@@ -132,3 +130,11 @@ def parse_gs1(datamatrix: str):
 			result["plate_serial"] = value
 
 	return result
+
+# remove FNC1 separators
+def normalize_gs1_barcode(barcode):
+	"""
+	Remove GS1 FNC1 separators so barcodes have a consistent
+	representation for storage and comparison.
+	"""
+	return barcode.replace("\x1D", "")

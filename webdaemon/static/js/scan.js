@@ -34,17 +34,18 @@ $(document).ready(function() {
       $("#Counts").attr("readonly", false);
    });
 
-   // add error handler such that user sees that camera is offline immediately when refreshing, 
-   // rather than only finding out when they try to save.
+   // Show image capture failures immediately and reset the workflow
+   // so the user can scan a new plate without reloading the page.
    $("#image").on('error', function() {
       if ($(this).attr("src") == image_src) {
-         $("#image").attr("src", image_placeholder);  // restore placeholder on camera failure
-         $("#commit_fail").html(`<strong>Error!</strong>&nbsp;No image was captured - check if camera is available`);
+         // Reset UI/workflow
+         init_page();
+
+         // Show error after reset
+         $("#commit_fail").html(
+            `<strong>Error!</strong>&nbsp;No image was captured. The camera may be unavailable.`
+         );
          $("#commit_fail").slideDown();
-         $("#Counts").attr("readonly", true);
-         $("#refresh").attr("disabled", false);  // allow image recapture retry
-         $("#barcode").attr("readonly", false);  // allow serial rescan
-         slideup_all();
       }
    });
 
@@ -106,7 +107,7 @@ function slideup_all() {
       $("#commit_ok").slideUp();
       $("#commit_fail").slideUp();
       $("#sameuser_error").slideUp();
-   }, 3000);
+   }, 6000);
 }
 
 function decode_text(text_input) {
@@ -145,7 +146,7 @@ function plate_info() {
             init_page();
          } else {
             $("#refresh").attr("disabled", false);
-            $("#refresh").focus();
+            // $("#refresh").focus();
             $("#batch").val(data.Batch);
             $("#location").val(data.Location);
             $("#table_timepoints").empty();
