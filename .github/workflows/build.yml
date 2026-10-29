@@ -1,13 +1,19 @@
 name: Build and Push Container # Name of this github Actions workflow
 
 on:
-  workflow_dispatch: # Allows manual triggering from the GitHub Actions UI but only if this defintion exists on the default branch
+  workflow_dispatch: # Normally this would allow manual triggering from the GitHub Actions UI, 
+                    # but in this project a manual trigger is only accepted on develop or feature/* (see "Validate ref" below)
   push:
     branches: # Any push to these branches triggers a build
     - develop
     - 'feature/**'
     tags:
     - '*.*.*' # Any push of a semvar tag (ie matching X.Y.Z)  triggers a build (e.g., 1.0.0, 2.3.7, etc.)
+              # The pattern is deliberately loose. Tags like "foo.bar.baz" start the run
+              # and then FAIL in "Validate ref", instead of being silently ignored. 
+              # TODO: why allow tags that don't match semver? Because a tag is a deliberate action, 
+              # and if it fails the build, the user should know about it. If it was silently ignored, 
+              # the user might think they had built a production image when they hadn't.
 
 # Job defintion
 jobs:
@@ -19,8 +25,48 @@ jobs:
       packages: write # reequired to be able to push to GHCR
 
     steps:
+      # Fail fast, before checkout/build/push, if this run could not produce a valid image.
+      # - tags must be strict semver: X.Y.Z or vX.Y.Z (no leading zeros, no -rc1 suffixes)
+      # - branches must be develop or feature/* to create the semvar staging or feature-<branch> images. No other branches are allowed to build images.
+      # The ref name is passed through env: instead of being pasted into the script (safer).
+      - name: Validate ref
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "$REF_TYPE" = "tag" ]; then
+            if ! echo "$REF_NAME" | grep -Eq '^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'; then
+              echo "::error::Tag '$REF_NAME' is not strict semver (expected X.Y.Z or vX.Y.Z)"
+              exit 1
+            fi
+          else
+            case "$REF_NAME" in
+              develop|feature/*) ;;
+              *)
+                echo "::error::Builds are only allowed from develop, feature/* or semver tags (got '$REF_NAME')"
+                exit 1
+                ;;
+            esac
+          fi
+
       - name: Checkout the repo
         uses: actions/checkout@v4 # Pulls repo into the runner so Docker can build it.
+        with:
+          fetch-depth: 0 # NEW: full history, needed by the release-branch check below
+
+      # A production tag is only allowed on a commit that is already on the release branch.
+      # Flow: develop (tested as staging) -> git merge --ff-only into release -> tag on release.
+      # This stops a production image being built from a feature branch or untested commit by accident.
+      # Requires the branch "release" to exist on GitHub
+      - name: Require tag to be on the release branch
+        if: github.ref_type == 'tag'
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          if ! git branch -r --contains "$GITHUB_SHA" | grep -qE '^\s*origin/release$'; then
+            echo "::error::Tag '$TAG_NAME' is not on the 'release' branch. Merge into release first, then tag."
+            exit 1
+          fi
 
       - name: Lint Dockerfile
         uses: hadolint/hadolint-action@v3.1.0 # Runs Hadolint against the Dockerfile to prevent bad Dockerfile pattern
@@ -31,6 +77,9 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/hbesfb/colonizer # GHCR image name
+          # never add the automatic "latest" tag. Only the three kinds of tag below exist.
+          flavor: |
+            latest=false
           tags: |
 
             # pushing to develop branch updates/creates the image colonizer:staging
@@ -38,6 +87,8 @@ jobs:
             
             # The image used by the test environment will automatically update as new commits
             # are pushed to develop.
+            # it contains everything merged into develop, so use it to test the combined
+            # result of several features (or an upstream sync) before promoting to release.
             type=raw,value=staging,enable=${{ github.ref == 'refs/heads/develop' }}
 
             # pushing to a feature branch updates/creates the image colonizer:feature-<branch-name>
@@ -53,7 +104,8 @@ jobs:
             #
             # The image associated with that feature branch will automatically
             # update as new commits are pushed to the branch.
-            type=ref,event=branch,enable=${{ github.ref != 'refs/heads/develop' }}
+            # enable= now matches only feature/* branches, so that random branches do not produce images.
+            type=ref,event=branch,enable=${{ startsWith(github.ref, 'refs/heads/feature/') }}
 
             # Creating a semantic-version tag creates a production image:
             #   v1.0.0 -> colonizer:v1.0.0
@@ -61,14 +113,11 @@ jobs:
             # In the production deployment we can use:
             #   image: ghcr.io/hbesfb/colonizer:v1.0.0
             #
-            # This image is immutable and will never change.
-            # Production is upgraded only by explicitly changing the image
+            # In Production deployment, an image is upgraded only by explicitly changing the image
             # tag, for example:
             #   colonizer:v1.0.0 -> colonizer:v1.0.4
+            # Images are only produced for tags on the release branch (see step "Require tag to be on the release branch" above).
             type=semver,pattern={{raw}}
-            
-            # add git commit SHA tag for traceability 
-            type=sha
 
       - name: Log in to GHCR
         uses: docker/login-action@v3 # Authenticates the runner to GHCR using the built‑in GitHub token.
@@ -84,7 +133,7 @@ jobs:
         with:
           context: . # Build from repo root
           push: true # Push image to GHCR
-          # Passes the output of the metadata-action (the 4 tags) into the build-push action
+          # Passes the output of the metadata-action (the generated tags) into the build-push action
           # So the build-push  action knows which tags to push
           tags: ${{ steps.meta.outputs.tags }}
           # The lables help scanners and k8s know where the image came from
