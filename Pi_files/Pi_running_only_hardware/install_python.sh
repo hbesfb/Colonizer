@@ -24,17 +24,16 @@ fi
 echo "debug: =====> running apt update"
 # update apt
 apt update
-apt upgrade -y
 
 echo "==> Installing system packages..."
 apt install -y --no-install-recommends \
-    python3-venv \
-    libgl1 \
-    libcamera-dev \
-    libcap-dev \
-    python3-libcamera \
-    python3-kms++ \
-    python3-opencv
+    python3-venv=3.13.5-1 \
+    libgl1=1.7.0-1+b2 \
+    libcamera-dev=0.7.2+rpt20260817-1 \
+    libcap-dev=1:2.75-10+deb13u1+b1 \
+    python3-libcamera=0.7.2+rpt20260817-1 \
+    python3-kms++=0~git20250807.1813ada-1 \
+    python3-opencv=4.10.0+dfsg-5
 
 echo "==> Creating Python virtual environment..."
 cd "$INSTALL_DIR"
