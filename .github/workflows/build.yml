@@ -1,19 +1,26 @@
 name: Build and Push Container # Name of this github Actions workflow
 
+# Prevent older builds of the same branch/ref from overwriting newer images.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
 on:
-  workflow_dispatch: # Normally this would allow manual triggering from the GitHub Actions UI, 
-                    # but in this project a manual trigger is only accepted on develop or feature/* (see "Validate ref" below)
+  workflow_dispatch: # Manual runs go through the same "Validate ref" checks as pushes.
+                    # They are accepted on develop, on feature/*, and on valid production tags
+                    # (vX.Y.Z on a commit reachable from the release branch). Any other ref fails validation.
   push:
     branches: # Any push to these branches triggers a build
     - develop
     - 'feature/**'
     tags:
-    - '*.*.*' # Any push of a semvar tag (ie matching X.Y.Z)  triggers a build (e.g., 1.0.0, 2.3.7, etc.)
-              # The pattern is deliberately loose. Tags like "foo.bar.baz" start the run
-              # and then FAIL in "Validate ref", instead of being silently ignored. 
-              # TODO: why allow tags that don't match semver? Because a tag is a deliberate action, 
-              # and if it fails the build, the user should know about it. If it was silently ignored, 
-              # the user might think they had built a production image when they hadn't.
+    - '*.*.*' # Any push of a tag with three dot-separated parts starts the run (e.g., v1.0.0, v2.3.7, etc.)
+              # The pattern is deliberately loose. Tags like "foo.bar.baz" or "1.2.3" (no leading v)
+              # start the run and then FAIL in "Validate ref", instead of being silently ignored.
+
+              # Deliberately loose: GitHub globs can't express strict semver, so the strict check lives in "Validate ref".
+              # A near-miss such as "1.2.3" (missing v) or "v1.2.3-rc1" starts the run and fails loudly,
+              # instead of being silently ignored and leaving you thinking a production image was built.
+              # Tags with fewer than three dot-separated parts (e.g. "v1.2") never start a run.
 
 # Job defintion
 jobs:
@@ -26,8 +33,9 @@ jobs:
 
     steps:
       # Fail fast, before checkout/build/push, if this run could not produce a valid image.
-      # - tags must be strict semver: X.Y.Z or vX.Y.Z (no leading zeros, no -rc1 suffixes)
-      # - branches must be develop or feature/* to create the semvar staging or feature-<branch> images. No other branches are allowed to build images.
+      # - tags must be strict semver with a leading v: vX.Y.Z (no leading zeros, no -rc1 suffixes, no bare X.Y.Z)
+      # - branches must be develop or feature/*. develop builds the "staging" image and feature/<name> builds the "feature-<name>" image. 
+      #No other branches are allowed to build images.
       # The ref name is passed through env: instead of being pasted into the script (safer).
       - name: Validate ref
         env:
@@ -35,8 +43,8 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
         run: |
           if [ "$REF_TYPE" = "tag" ]; then
-            if ! echo "$REF_NAME" | grep -Eq '^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'; then
-              echo "::error::Tag '$REF_NAME' is not strict semver (expected X.Y.Z or vX.Y.Z)"
+            if ! echo "$REF_NAME" | grep -Eq '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'; then
+              echo "::error::Tag '$REF_NAME' is not strict semver with a v prefix (expected vX.Y.Z)"
               exit 1
             fi
           else
