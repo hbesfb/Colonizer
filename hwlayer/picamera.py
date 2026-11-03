@@ -1,8 +1,15 @@
-import logging
+from hwlayer.hwlog import logging
 import time
 from io import BytesIO
 from picamera2 import Picamera2
 from libcamera import Transform
+try:
+	from libcamera import controls
+	EXPOSURE_TIME_MODE_MANUAL = controls.ExposureTimeModeEnum.Manual
+	ANALOGUE_GAIN_MODE_MANUAL = controls.AnalogueGainModeEnum.Manual
+except (ImportError, AttributeError):
+	EXPOSURE_TIME_MODE_MANUAL = 1
+	ANALOGUE_GAIN_MODE_MANUAL = 1
 from hwlayer.base import BaseCamera
 
 class PiHQCamera2(BaseCamera):
@@ -10,7 +17,6 @@ class PiHQCamera2(BaseCamera):
 		self.timeout = 180 # seconds
 		self._logger = logging.getLogger('PiHQCamera')
 		self._logger.setLevel('DEBUG')
-
 		self._logger.info('Initializing camera')
 		self._cam = Picamera2()
 		self._config = self._cam.create_still_configuration(
@@ -19,12 +25,15 @@ class PiHQCamera2(BaseCamera):
 			buffer_count=2
 		)
 		self._config['controls'].update({
-			'AnalogueGain': 1.0
+			'ExposureTimeMode': EXPOSURE_TIME_MODE_MANUAL,
+			'AnalogueGainMode': ANALOGUE_GAIN_MODE_MANUAL,
+			'AnalogueGain': 4.0,
 		})
 		self._cam.configure(self._config)
 		self._last_active = 0
 		self._config_changed = True
 		self._control_changed = True
+		self._needs_sync = True
 		self.rotation = 0
 		super().__init__()
 		
@@ -35,12 +44,15 @@ class PiHQCamera2(BaseCamera):
 			self._stop_cam()
 			self._cam.configure(self._config)
 			self._config_changed = False
+			self._needs_sync = True
 		if self._control_changed:
 			self._logger.debug('Control changed')
 			self._cam.set_controls(self._config['controls'])
 			self._control_changed = False
+			self._needs_sync = True
 		if not self._cam.started:
 			self._cam.start()
+			self._needs_sync = True
 		self._last_active = time.time()
 
 	def _stop_cam(self):
@@ -55,36 +67,80 @@ class PiHQCamera2(BaseCamera):
 	
 	def isReady(self):
 		return self._cam.started
+
+	def _get_request(self):
+		self.ready_cam()
+		if not self._needs_sync:
+			return self._cam.capture_request()
+
+		target_exp = self._config['controls'].get('ExposureTime')
+		target_gain = self._config['controls'].get('AnalogueGain')
+		self._logger.debug(f"Syncing camera to exp={target_exp}, gain={target_gain}")
+
+		req = None
+		for i in range(15):
+			req = self._cam.capture_request()
+			meta = req.get_metadata()
+			m_exp = meta.get('ExposureTime')
+			m_gain = meta.get('AnalogueGain')
+
+			exp_ok = (target_exp is None) or (m_exp is not None and abs(m_exp - target_exp) <= max(1000, target_exp * 0.05))
+			gain_ok = (target_gain is None) or (m_gain is not None and abs(m_gain - target_gain) <= max(0.2, target_gain * 0.05))
+
+			if exp_ok and gain_ok:
+				self._logger.debug(f"Sync achieved in {i+1} frames (exp={m_exp}, gain={m_gain})")
+				self._needs_sync = False
+				return req
+			req.release()
+
+		self._logger.warning(f"Sync reached frame limit; returning latest frame (exp={m_exp}, gain={m_gain})")
+		self._needs_sync = False
+		return req
 	
 	def capture_array(self):
-		self.ready_cam()
 		self._logger.info(f"Capturing image {self._config['main']['size']}")
-		image = self._cam.capture_array()
+		req = self._get_request()
+		image = req.make_array('main')
+		req.release()
 		if self.rotation:
 			pass
 			#image = np.rot90(np.copy(image,order='C'), k=self.rotation, axes=(0,1))
 		return image
 
 	def capture_jpeg(self):
-		self.ready_cam()
 		self._logger.info(f"Capturing image {self._config['main']['size']}")
+		req = self._get_request()
 		stream = BytesIO()
-		self._cam.capture_file(stream, format='jpeg')        
+		req.save('main', stream, format='jpeg')
+		req.release()
 		return stream.getbuffer().tobytes()
 			
 	def set_exposure(self, exp):
 		if exp is None:
 			return
-		self._config['controls']['ExposureTime'] = exp
-		self._logger.debug(f"Setting exposure to {exp}")
-		self._control_changed = True
+		if self._config['controls'].get('ExposureTime') != exp:
+			self._config['controls']['ExposureTimeMode'] = EXPOSURE_TIME_MODE_MANUAL
+			self._config['controls']['ExposureTime'] = exp
+			self._logger.debug(f"Setting exposure to {exp}")
+			self._control_changed = True
+
+	def set_gain(self, gain):
+		if gain is None:
+			return
+		gain = float(gain)
+		if self._config['controls'].get('AnalogueGain') != gain:
+			self._config['controls']['AnalogueGainMode'] = ANALOGUE_GAIN_MODE_MANUAL
+			self._config['controls']['AnalogueGain'] = gain
+			self._logger.debug(f"Setting gain to {gain}")
+			self._control_changed = True
 
 	def set_whitebalance(self, wb_red, wb_blue):
 		if wb_red is None or wb_blue is None:
 			return
-		self._config['controls']['ColourGains'] = [wb_red, wb_blue]
-		self._logger.debug(f"Setting white balance to {wb_red:0.2f} 1.00 {wb_blue:0.2f}")
-		self._control_changed = True
+		if self._config['controls'].get('ColourGains') != [wb_red, wb_blue]:
+			self._config['controls']['ColourGains'] = [wb_red, wb_blue]
+			self._logger.debug(f"Setting white balance to {wb_red:0.2f} 1.00 {wb_blue:0.2f}")
+			self._control_changed = True
 	
 	def set_flip(self, horizontal=False, vertical=False):
 		self._logger.debug(f"Setting flip to {horizontal} {vertical}")

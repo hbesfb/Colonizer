@@ -1,11 +1,10 @@
 import sys
 import zmq
 import time
-from hwlayer.logging import logging
+from hwlayer.hwlog import logging
 from hwlayer.illumination import illumination
 
 log = logging.getLogger('Server')
-log.setLevel('DEBUG')
 log.info("Starting server")
 
 # declare variables
@@ -72,8 +71,9 @@ def main():
             t0 = time.time_ns()
 
             # check if settings changed
-            if request != prev_request:
+            if True: #request != prev_request:
                camera.set_exposure(request['cam_exposure'])
+               camera.set_gain(request.get('cam_gain', 4.0))
                camera.set_whitebalance(request['cam_wb'][0],request['cam_wb'][1])
                camera.set_crop(request['cam_crop'])
                camera.set_resolution(request['cam_resolution'])

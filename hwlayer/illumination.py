@@ -3,10 +3,9 @@ import board
 from threading import Thread, Event, Timer
 from abc import ABC, abstractmethod
 from settings import settings
-from hwlayer.logging import logging
+from hwlayer.hwlog import logging
 
 log = logging.getLogger('Illumination')
-log.setLevel('DEBUG')
 log.info("Starting illumination")
 
 # load settings
@@ -99,7 +98,7 @@ class IlluminationNeopixel(Illumination):
 
 	def set_status(self, value):
 		if value:
-			color = [0,255,0]
+			color = value
 		else:
 			color = [0,0,0]
 
@@ -108,7 +107,7 @@ class IlluminationNeopixel(Illumination):
 
 	def set_top(self, value):
 		if value:
-			color = settings['illumination']['neopixel']['color_top']
+			color = value
 		else:
 			color = [0,0,0]
 
@@ -117,16 +116,16 @@ class IlluminationNeopixel(Illumination):
 
 	def set_ring(self, value):
 		if value:
-			color = settings['illumination']['neopixel']['color_ring']
+			color = value
 		else:
 			color = [0,0,0]
 		
 		for i in self.segment['ring']:
 				self.strip[i] = color
 
-	def clear():
+	def clear(self):
 		self.stop()
-		super(self).clear()
+		super().clear()
 		self.strip.show()
 
 	# Define functions which animate LEDs in various ways.

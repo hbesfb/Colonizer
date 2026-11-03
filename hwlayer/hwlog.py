@@ -4,6 +4,7 @@ import logging.handlers
 
 # setup logging
 log_root = logging.getLogger()
+log_root.setLevel('DEBUG')
 log_formatter = logging.Formatter("%(asctime)s | %(name)12s | %(levelname)8s : %(message)s")
 #log_filehandler = logging.handlers.TimedRotatingFileHandler('log/ColonizerHW.log', when='midnight', backupCount=7)
 #log_filehandler.setFormatter(log_formatter)
