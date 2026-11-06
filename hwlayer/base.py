@@ -36,6 +36,8 @@ class BaseCamera(ABC):
 	@abstractmethod
 	def set_exposure(self, exp: int) -> None:
 		pass
+	def set_gain(self, gain: float) -> None:
+		pass
 	@abstractmethod
 	def set_whitebalance(self, wb_red: float, wb_blue:float) -> None:
 		pass

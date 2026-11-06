@@ -6,14 +6,13 @@ import os
 import zmq
 import time
 import threading # needed for the status thread + camera lock
-from hwlayer.logging import logging
+from hwlayer.hwlog import logging
 from hwlayer.illumination import illumination
 from hwlayer.picamera import PiHQCamera2
 from settings import settings
 import cv2
 
 log = logging.getLogger('Server')
-log.setLevel('DEBUG')
 log.info("Starting server")
 
 # declare variables
@@ -211,11 +210,13 @@ def main():
             t0 = time.time_ns()
 
             # check if settings changed
+
             # Only reconfigure camera if the requested settings have changed
             if prev_request is None or request != prev_request:
                # lock while applying camera config changes
                with camera_lock:
                   camera.set_exposure(request['cam_exposure'])
+                  camera.set_gain(request.get('cam_gain', 4.0))
                   camera.set_whitebalance(request['cam_wb'][0],request['cam_wb'][1])
                   camera.set_crop(request['cam_crop'])
                   camera.set_resolution(request['cam_resolution'])

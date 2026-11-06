@@ -1,2 +1,1 @@
-0 2 * * * colonizer /var/Colonizer/scripts/cleanup.sh
 */5 * * * * colonizer grep -q "/mnt/data" /proc/mounts || sudo mount /mnt/data

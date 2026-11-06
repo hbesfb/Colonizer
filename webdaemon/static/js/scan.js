@@ -9,18 +9,13 @@ $(document).ready(function() {
    // set up events
    $("#clear").click(init_page);
 
-   // when new image loaded, update image
-   $("#image").on('load', function() {
-      if ($(this).attr("src") == image_src) {
-         $("#imagezoom").attr("src", image_src);
-      }
-   })
    // script for capturing barcode reader input on screen
    // prevent submit on enter press
    $("#barcode").change(function (event) {
       $("#barcode").attr('readonly', true);
       decode_text($("#barcode").val());
    });
+
    // refresh image on button click
    $("#refresh").click(function () {
       cfu_clear();
