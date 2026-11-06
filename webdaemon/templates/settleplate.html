@@ -5,6 +5,7 @@
 {% endblock %}
 {% block scripts %}
 	{{ super() }}
+	<script src="/static/tensorflow/tf.min.js"></script>
 	<script src="/static/hive/CFUdraw.js"></script>
 	<script src="/static/js/imageoverlay.js"></script>
 	{% if not readonly %}
