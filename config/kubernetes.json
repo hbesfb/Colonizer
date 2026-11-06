@@ -53,6 +53,7 @@
          "cam_vflip": true,
          "cam_rotation": "cw",
          "cam_exposure": 50000,
+         "cam_gain": 4.0,
          "cam_wb": [3.6,1.6],
          "led_top": false,
          "led_ring": false,
