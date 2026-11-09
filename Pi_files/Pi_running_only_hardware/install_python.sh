@@ -22,7 +22,16 @@ if [[ ! -d "$INSTALL_DIR" ]]; then
     exit 1
 fi
 echo "debug: =====> running apt update"
-# update apt
+
+# Refresh package metadata before installing pinned versions.
+# Verify that the pinned package versions are still available from the
+# configured Debian and Raspberry Pi repositories on the Pi.
+# Installation should fail if a pinned version has been removed rather than
+# silently selecting a different version.
+#
+# Repository configuration for Debian and Raspberry Pi is currently defined in:
+#   /etc/apt/sources.list.d/debian.sources
+#   /etc/apt/sources.list.d/raspi.sources
 apt update
 
 echo "==> Installing system packages..."
