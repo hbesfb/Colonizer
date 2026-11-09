@@ -248,25 +248,24 @@ The following files must exist inside /app/Colonizer/hwlayer/:
 	ueyecamera.py
 	```
 
-currently installed versions as of 03.November.2026 (together with indirect dependences that are not specied in reqts file or the .sh scripts):
+currently installed versions as of 09.November.2026 (together with indirect dependences that are not specied in reqts file or the .sh scripts):
 
 ```
 admin@colonizer:~ $ /app/Colonizer/venv/bin/pip freeze
-Adafruit-Blinka==9.2.0
-Adafruit-Blinka-Raspberry-Pi5-Neopixel==1.0.0rc2
+Adafruit-Blinka==10.1.0
 adafruit-circuitpython-busdevice==5.2.17
 adafruit-circuitpython-connectionmanager==3.1.8
 adafruit-circuitpython-neopixel-spi==1.0.16
 adafruit-circuitpython-pixelbuf==2.1.0
-adafruit-circuitpython-requests==4.1.17
-adafruit-circuitpython-typing==1.12.3
-Adafruit-PlatformDetect==3.89.1
-Adafruit-PureIO==1.1.11
+adafruit-circuitpython-requests==4.1.18
+adafruit-circuitpython-typing==1.13.0
+Adafruit-PlatformDetect==3.90.0
+Adafruit_PureIO==1.1.12
 apt-listchanges==4.8
 arrow==1.3.0
 attrs==25.3.0
 autocommand==2.2.2
-av==18.1.0
+av==19.0.2
 babel==2.17.0
 bcrypt==4.2.0
 binho-host-adapter==0.1.6
@@ -305,12 +304,12 @@ more-itertools==10.7.0
 numpy==2.5.1
 oauthlib==3.2.2
 opencv==4.10.0
-OpenEXR==3.4.15
+OpenEXR==3.5.3
 packaging==25.0
 picamera2==0.3.36
 pidng==4.0.9
 piexif==1.1.3
-pillow==12.3.0
+pillow==13.0.0
 platformdirs==4.3.7
 pycryptodomex==3.20.0
 pyftdi==0.57.2
@@ -333,15 +332,13 @@ rich==13.9.4
 rpds-py==0.21.0
 rpi-keyboard-config==1.0
 rpi-lgpio==0.6
-RPi.GPIO==0.7.1
-rpi_ws281x==5.0.0
 simplejpeg==1.9.0
 smbus2==0.4.3
 spidev==3.6
 ssh-import-id==5.10
 supervisor==4.2.5
 sysv_ipc==1.2.0
-tqdm==4.70.0
+tqdm==4.70.1
 typeguard==4.4.2
 types-aiofiles==24.1
 types-antlr4-python3-runtime==4.13
