@@ -91,6 +91,12 @@
          "crop_drawonly": true,
          "histogram": true
       },
+      "_settleplate_test3": {
+         "cam_exposure": 50000,
+         "led_ring": true,
+         "crop_mask": true,
+         "crop_mask_cr": 0.434
+      },
       "plate": {
          "cam_exposure": 50000,
          "led_top": true,
