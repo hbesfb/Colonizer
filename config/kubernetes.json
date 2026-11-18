@@ -97,11 +97,23 @@
          "crop_mask": true,
          "crop_mask_cr": 0.434
       },
+      "_settleplate_test3b": {
+         "cam_exposure": 50000,
+         "led_ring": true,
+         "crop_mask": true,
+         "crop_mask_cr": 0.54
+      },
       "_settleplate_test4": {
          "cam_exposure": 25000,
          "led_ring": true,
          "crop_mask": true,
          "crop_mask_cr": 0.434
+      },
+      "_settleplate_test4b": {
+         "cam_exposure": 25000,
+         "led_ring": true,
+         "crop_mask": true,
+         "crop_mask_cr": 0.45
       },
       "_settleplate_test5": {
          "cam_exposure": 20000,
@@ -109,11 +121,23 @@
          "crop_mask": true,
          "crop_mask_cr": 0.434
       },
+      "_settleplate_test5b": {
+         "cam_exposure": 20000,
+         "led_ring": true,
+         "crop_mask": true,
+         "crop_mask_cr": 0.45
+      },
       "_settleplate_test6": {
          "cam_exposure": 15000,
          "led_ring": true,
          "crop_mask": true,
          "crop_mask_cr": 0.434
+      },
+        "_settleplate_test6b": {
+         "cam_exposure": 15000,
+         "led_ring": true,
+         "crop_mask": true,
+         "crop_mask_cr": 0.45
       },
        "_settleplate_test7": {
          "cam_exposure": 10000,
