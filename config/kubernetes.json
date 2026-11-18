@@ -115,6 +115,18 @@
          "crop_mask": true,
          "crop_mask_cr": 0.434
       },
+       "_settleplate_test7": {
+         "cam_exposure": 10000,
+         "led_ring": true,
+         "crop_mask": true,
+         "crop_mask_cr": 0.434
+      },
+          "_settleplate_test8": {
+         "cam_exposure": 5000,
+         "led_ring": true,
+         "crop_mask": true,
+         "crop_mask_cr": 0.434
+      },
       "plate": {
          "cam_exposure": 50000,
          "led_top": true,
