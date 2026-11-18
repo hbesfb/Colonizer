@@ -62,7 +62,6 @@ We will be copying over the needed files from the repository parent dir to a wri
 
 #### On the Pi
 - SSh to the Pi: `admin@plateleser.medtek.hbe.med.nvsl.no`, provide the password when prompted
-- The application root directory `/app/Colonizer` should already exist on the Pi. If not create it
 - Move the copied files to `app/Colonizer`: `sudo cp -r Pi_files/. /app/Colonizer`
 
 To know more about the use/content of these files checkout the section #About the files needed for Pi installation
