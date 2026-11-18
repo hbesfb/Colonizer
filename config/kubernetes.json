@@ -96,13 +96,6 @@
          "crop_mask_cr": 0.434,
           "histogram": true
       },
-      "_settleplate_test_15K": {
-         "cam_exposure": 15000,
-         "led_ring": true,
-         "crop_mask": true,
-         "crop_mask_cr": 0.434,
-          "histogram": true
-      },
       "closest_to_plate_no_default": {
          "cam_exposure": 50000,
          "led_top": true,
