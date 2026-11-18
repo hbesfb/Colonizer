@@ -95,15 +95,6 @@
          "crop_mask": true,
          "crop_mask_cr": 0.434
       },
-      "plate_no_default_led_ring_on": {
-         "cam_exposure": 20000,
-         "led_ring": true,
-         "crop_mask": true,
-         "crop_mask_cr": 0.434,
-         "crop_canny_t1": 32,
-         "crop_canny_t2": 64,
-         "crop_auto": "rect"
-      },
       "plate_no_default_led_ring_on_rect": {
          "cam_exposure": 20000,
          "led_ring": true,
@@ -112,6 +103,14 @@
          "crop_canny_t1": 32,
          "crop_canny_t2": 64,
          "crop_auto": "rect"
+      },
+         "plate_no_default_led_ring_on": {
+         "cam_exposure": 20000,
+         "led_ring": true,
+         "crop_mask": true,
+         "crop_mask_cr": 0.434,
+         "crop_canny_t1": 32,
+         "crop_canny_t2": 64
       },
       "plate": {
          "cam_exposure": 50000,
