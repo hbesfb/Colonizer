@@ -95,50 +95,53 @@
          "cam_exposure": 50000,
          "led_ring": true,
          "crop_mask": true,
-         "crop_mask_cr": 0.434
+         "crop_mask_cr": 0.434,
+          "histogram": true
       },
       "_settleplate_test4": {
          "cam_exposure": 25000,
          "led_ring": true,
          "crop_mask": true,
-         "crop_mask_cr": 0.434
+         "crop_mask_cr": 0.434,
+          "histogram": true
       },
       "_settleplate_test5": {
          "cam_exposure": 20000,
          "led_ring": true,
          "crop_mask": true,
-         "crop_mask_cr": 0.434
+         "crop_mask_cr": 0.434,
+          "histogram": true
       },
       "_settleplate_test6": {
          "cam_exposure": 15000,
          "led_ring": true,
          "crop_mask": true,
-         "crop_mask_cr": 0.434
+         "crop_mask_cr": 0.434,
+          "histogram": true
       },
        "_settleplate_test7": {
          "cam_exposure": 10000,
          "led_ring": true,
          "crop_mask": true,
-         "crop_mask_cr": 0.434
+         "crop_mask_cr": 0.434,
+          "histogram": true
       },
       "closest_to_plate_no_default": {
          "cam_exposure": 50000,
          "led_top": true,
+         "led_ring": true,
          "crop_mask_cr": 0.54,
          "crop_canny_t1": 64,
-         "crop_canny_t2": 128
+         "crop_canny_t2": 128,
+          "histogram": true
       },
       "closest_to_plate_no_default_top_led": {
          "cam_exposure": 50000,
+         "led_ring": true,
          "crop_mask_cr": 0.54,
-         "crop_canny_t1": 64,
-         "crop_canny_t2": 128
-      },
-      "plate_default_no_top_led": {
-         "cam_exposure": 50000,
-         "crop_mask_cr": 0.54,
-         "crop_canny_t1": 64,
-         "crop_canny_t2": 128
+         "crop_canny_t1": 32,
+         "crop_canny_t2": 64,
+          "histogram": true
       },
       "plate": {
          "cam_exposure": 50000,
