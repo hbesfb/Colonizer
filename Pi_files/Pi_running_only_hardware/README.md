@@ -247,11 +247,11 @@ The following files must exist inside /app/Colonizer/hwlayer/:
 	ueyecamera.py
 	```
 
-currently installed versions as of 09.November.2026 (together with indirect dependences that are not specied in reqts file or the .sh scripts):
+currently installed versions as of 18.November.2026 (together with indirect dependences that are not specied in reqts file or the .sh scripts):
 
 ```
 admin@colonizer:~ $ /app/Colonizer/venv/bin/pip freeze
-Adafruit-Blinka==10.1.0
+Adafruit-Blinka==10.2.0
 adafruit-circuitpython-busdevice==5.2.17
 adafruit-circuitpython-connectionmanager==3.1.8
 adafruit-circuitpython-neopixel-spi==1.0.16
@@ -303,7 +303,7 @@ more-itertools==10.7.0
 numpy==2.5.1
 oauthlib==3.2.2
 opencv==4.10.0
-OpenEXR==3.5.3
+OpenEXR==3.5.4
 packaging==25.0
 picamera2==0.3.36
 pidng==4.0.9
