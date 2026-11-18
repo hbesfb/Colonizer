@@ -15,7 +15,7 @@ WORKDIR ${APP_HOME}
 # Build-time dependencies only
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	build-essential=12.9 \
-	libpq-dev=15.19-0+deb12u1 \
+	libpq-dev=15.20-0+deb12u1 \
 	curl=7.88.1-10+deb12u15 \
 	unzip=6.0-28+deb12u1 \
 	sassc=3.6.1+20201027-2+b1 \
@@ -115,7 +115,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	libgl1=1.6.0-1 \
 	libglib2.0-0=2.74.6-2+deb12u9 \
 	&& rm -rf /var/lib/apt/lists/*
-	# add later if needed: libpq5=15.19-0+deb12u1 \
+	# add later if needed: libpq5=15.20-0+deb12u1 \
 
 # Copy application and Python virtual environment
 COPY --from=builder ${APP_HOME} ${APP_HOME}
