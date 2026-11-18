@@ -70,7 +70,7 @@
          "autolevel": false
       },
       "settleplate": {
-         "cam_exposure": 200000,
+         "cam_exposure": 20000,
          "led_ring": true,
          "crop_mask": true,
          "crop_mask_cr": 0.434
