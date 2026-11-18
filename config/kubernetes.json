@@ -113,6 +113,16 @@
          "crop_canny_t2": 128,
           "histogram": true
       },
+       "closest_to_plate_no_default_led_top_on3": {
+         "cam_exposure": 20000,
+         "led_top": true,
+         "led_ring": true,
+         "crop_mask_cr": 0.54,
+         "crop_canny_t1": 64,
+         "crop_canny_t2": 128,
+          "histogram": true,
+          "default": true
+      },
       "closest_to_plate_no_default_led_ring_on": {
          "cam_exposure": 20000,
          "led_ring": true,
