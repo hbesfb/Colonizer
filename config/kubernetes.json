@@ -118,7 +118,6 @@
          "crop_canny_t1": 32,
          "crop_canny_t2": 64,
          "crop_mask": true,
-         "default": true,
          "histogram": true
       },
       "plate": {
